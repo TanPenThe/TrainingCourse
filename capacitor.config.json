@@ -1,0 +1,8 @@
+{
+  "appId": "app.trainingprogram.mobile",
+  "appName": "Training Program",
+  "webDir": "app",
+  "backgroundColor": "#eef0ec",
+  "android": { "backgroundColor": "#eef0ec" },
+  "ios": { "backgroundColor": "#eef0ec", "contentInset": "never" }
+}

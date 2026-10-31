@@ -1,0 +1,62 @@
+# Builds the Android app on GitHub's servers from the code in this repository
+# and attaches the APK to a release you can download on your phone.
+# The signing key comes from repository secrets and is never stored in the code.
+name: Build Android app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Build the web app and copy it into the Android project
+        run: python3 tools/build_app.py && npx cap sync android
+      - name: Build the signed APK
+        id: build
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: training
+          VERSION_CODE: ${{ github.run_number }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::notice::Skipped: add the ANDROID_KEYSTORE_BASE64 and ANDROID_KEYSTORE_PASSWORD repository secrets to turn on Android builds."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          export ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/release.jks"
+          cd android
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/TrainingProgram.apk"
+          rm -f "$RUNNER_TEMP/release.jks"
+      - name: Publish the APK as a release
+        if: steps.build.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(sha256sum TrainingProgram.apk | cut -d' ' -f1)
+          gh release create "v1.0.${{ github.run_number }}" TrainingProgram.apk \
+            --title "Training Program 1.0.${{ github.run_number }}" \
+            --notes "Built automatically by GitHub Actions from commit ${{ github.sha }}.
+
+          Install: open this page on your Android phone, tap **TrainingProgram.apk**, then open the download.
+
+          SHA-256: \`$sha\`"

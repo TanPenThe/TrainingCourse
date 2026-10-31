@@ -1,0 +1,20 @@
+{
+  "name": "training-program",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Training Program workout app: web app (PWA) plus Android and iOS shells built with Capacitor.",
+  "scripts": {
+    "build": "python3 tools/build_app.py",
+    "icons": "python3 tools/make_icons.py app/icons",
+    "sync": "npm run build && npx cap sync",
+    "android": "npm run sync && npx cap open android",
+    "ios": "npm run sync && npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.10",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.6.10",
+    "@capacitor/core": "^7.6.10",
+    "@capacitor/ios": "^7.6.10"
+  }
+}
