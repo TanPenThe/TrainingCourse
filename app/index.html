@@ -95,6 +95,8 @@ h1 span { color: var(--accent); transition: color .3s; }
 .plan p { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
 .seg.prog { display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin-bottom: 0; }
 .seg.prog button { padding: 7px 8px; font-size: 14px; font-weight: 700; }
+.venue-row[hidden] { display: none; }
+.venue-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; }
 .plan .prog-note { margin: 6px 2px 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 
 .list { display: flex; flex-direction: column; gap: 10px; }
@@ -227,6 +229,13 @@ ol.steps li::before { content: counter(s); font-family: var(--display); font-wei
       <button type="button" id="prog-ppl" data-prog="ppl" aria-pressed="true">Men's Program</button>
       <button type="button" id="prog-women" data-prog="women" aria-pressed="false">Women's Program</button>
     </div>
+    <div class="venue-row" id="venueRow" hidden>
+      <span class="eyebrow">Where you train</span>
+      <div class="seg" role="group" aria-label="Where you train">
+        <button type="button" id="venue-gym" data-venue="gym" aria-pressed="true">Gym</button>
+        <button type="button" id="venue-home" data-venue="home" aria-pressed="false">Home</button>
+      </div>
+    </div>
     <p class="prog-note" id="progNote"></p>
     <div class="plan-head">
       <span class="eyebrow">Your week</span>
@@ -346,12 +355,19 @@ const EX = {
           { h: [110, 146], s: [104, 94], a: [124, 86], f: [144, 180] }],
       steps: ["Grab the bar slightly wider than shoulders and sit with your thighs under the pads.", "Pull the bar down to your upper chest, keeping a slight arch in your lower back.", "Straighten your arms slowly to return."],
       tip: "Think of driving your elbows down into your back pockets.", mistake: "Leaning way back and yanking the bar with momentum." },
-    { id: "shrug", name: "Dumbbell Shrugs", muscles: "Traps · Forearms", equip: "Dumbbells", front: true,
-      hi: ["torso"], dur: 2000, db: true, props: [],
-      k: [{ h: [120, 113], s: [120, 62], a: [106, 114], a2: [134, 114], f: [112, 180], f2: [128, 180], hc: [120, 44] },
-          { h: [120, 113], s: [120, 53], a: [106, 105], a2: [134, 105], f: [112, 180], f2: [128, 180], hc: [120, 44] }],
-      steps: ["Stand holding dumbbells at your sides.", "Shrug your shoulders straight up as high as you can.", "Relax them back down slowly."],
-      tip: "Hold the top for a second. Your arms just hang like ropes.", mistake: "Rolling the shoulders in circles. Straight up and down." },
+    { id: "cablerow", name: "Seated Cable Row", muscles: "Mid back · Lats · Biceps", equip: "Cable row machine",
+      hi: ["arm", "torso"], dur: 2400, db: true, cable: [176, 146], props: [["bench", 70, 150, 56, 30], ["pad", 176, 128, 176, 170, 6]],
+      k: [{ h: [100, 144], s: [104, 92], a: [156, 112], f: [166, 152] },
+          { h: [100, 144], s: [102, 92], a: [124, 124], f: [166, 152] }],
+      steps: ["Sit with your feet on the platform, knees slightly bent, holding the handle with straight arms.", "Sit tall, then pull the handle to your stomach, driving your elbows straight back.", "Squeeze your shoulder blades together, then let your arms straighten slowly."],
+      tip: "Your chest stays up and still. This one is easy on your lower back, so focus on the squeeze.", mistake: "Rocking back and forth to move the weight." },
+    { id: "facepull", name: "Face Pull", muscles: "Rear delts · Upper back · Rotator cuff", equip: "Cable machine, rope",
+      sets: 3, setsLabel: "3", reps: "12–15", rest: 75, restLabel: "Rest 60–90 s",
+      hi: ["arm"], dur: 2400, el: -1, cable: [190, 60], props: [["col", 198, 10, 180]],
+      k: [{ h: [118, 113], s: [120, 61], a: [172, 62], f: [118, 180] },
+          { h: [118, 113], s: [120, 61], a: [130, 50], f: [118, 180] }],
+      steps: ["Set a cable at face height with a rope. Hold the ends with your thumbs pointing back.", "Pull the rope toward your face, pulling the ends apart, elbows high and wide.", "Finish with your hands beside your ears, squeeze for a second, then return slowly."],
+      tip: "This balances all the pressing from Push day and keeps your shoulders healthy.", mistake: "Going heavy and leaning back. Use a light weight and a slow squeeze." },
     { id: "curl", name: "Biceps Curl", muscles: "Biceps · Forearms", equip: "Barbell or dumbbells",
       hi: ["forearm"], dur: 2200, db: true, props: [],
       k: [{ h: [120, 113], s: [120, 61], a: [124, 114], f: [120, 180] },
@@ -484,6 +500,78 @@ const W = {
 };
 for (const c in W) W[c] = W[c].map(e => Object.assign({}, WSTD, e));
 
+// Women's home version: bodyweight, a sofa or chair, stairs, and optionally a resistance band and light dumbbells.
+const HSTD = { sets: 3, setsLabel: "3", reps: "12–20", rest: 50 };
+const wfind = id => Object.values(W).flat().find(e => e.id === id);
+const home = (id, extra) => Object.assign({}, wfind(id), HSTD, { id: "h-" + id.replace(/^w-/, "") }, extra);
+const WH = {
+  glutes: [
+    home("w-hipthrust", { name: "Sofa Hip Thrust", equip: "Sofa or sturdy chair", plate: null,
+      steps: ["Sit on the floor with your upper back against the edge of a sofa, knees bent, feet flat.", "Drive through your heels and lift your hips until your body is flat from shoulders to knees.", "Squeeze your glutes for 2 seconds at the top, then lower slowly."],
+      tip: "To make it harder, rest a dumbbell or a heavy backpack on your hips, or do it one leg at a time." }),
+    { id: "h-slrdl", name: "Single-Leg Romanian Deadlift", muscles: "Hamstrings · Glutes · Balance", equip: "None (dumbbell optional)",
+      hi: ["leg", "torso"], dur: 3000, props: [],
+      k: [{ h: [120, 113], s: [122, 61], a: [124, 114], f: [118, 178], f2: [122, 180] },
+          { h: [112, 118], s: [160, 100], a: [160, 152], f: [48, 100], f2: [122, 180] }],
+      steps: ["Stand on one leg with a soft knee.", "Hinge at the hips and reach your hands toward the floor while your free leg lifts straight behind you.", "Stop when your body is close to flat, then squeeze your glute to stand back up. Finish all reps, then switch legs."],
+      tip: "Hold a wall or chair with one hand until your balance improves.", mistake: "Twisting your hips open. Keep both hip bones pointing at the floor." },
+    { id: "h-donkey", name: "Donkey Kick", muscles: "Glutes", equip: "None (ankle band optional)",
+      hi: ["leg"], dur: 2000, props: [],
+      k: [{ h: [100, 130], s: [150, 126], a: [150, 178], f: [66, 176], f2: [66, 176] },
+          { h: [100, 130], s: [150, 126], a: [150, 178], f: [66, 96], f2: [66, 176] }],
+      steps: ["Start on hands and knees, hands under shoulders and knees under hips.", "Keep the knee bent at 90° and press one foot up toward the ceiling.", "Squeeze your glute at the top, then lower without touching the floor. Do all reps, then switch."],
+      tip: "Imagine stamping a footprint on the ceiling.", mistake: "Arching your lower back to lift the leg higher." },
+    home("w-bridge", { name: "Single-Leg Glute Bridge", reps: "10–15 each",
+      steps: ["Lie on your back, knees bent. Lift one foot and hold that knee toward your chest.", "Press through the heel on the floor and lift your hips.", "Hold 2 seconds at the top, lower slowly. Do all reps, then switch legs."],
+      tip: "Start with regular two-leg bridges if one leg is too hard." }),
+    { id: "h-slider", name: "Sliding Hamstring Curl", muscles: "Hamstrings · Glutes", equip: "Towel on a smooth floor",
+      hi: ["leg"], dur: 2800, kn: 1, towel: true, props: [],
+      k: [{ h: [112, 150], s: [162, 174], a: [128, 177], f: [80, 178] },
+          { h: [110, 164], s: [162, 174], a: [128, 177], f: [48, 178] }],
+      steps: ["Lie on your back with your heels on a towel and lift your hips into a bridge.", "Keep your hips up and slowly slide your heels away until your legs are nearly straight.", "Pull your heels back in, keeping your hips lifted the whole time."],
+      tip: "Go slow on the way out. That is where the hamstrings work hardest.", mistake: "Letting your hips sag to the floor." }
+  ],
+  upper: [
+    { id: "h-inclinepush", name: "Incline Push-Up", muscles: "Chest · Triceps · Shoulders", equip: "Sofa, bench or kitchen counter",
+      hi: ["arm", "torso"], dur: 2200, props: [["bench", 168, 154, 60, 26]],
+      k: [{ h: [97, 141], s: [139.6, 111], a: [172, 154], f: [41, 180] },
+          { h: [108.5, 158], s: [158, 142], a: [172, 154], f: [41, 180] }],
+      steps: ["Place your hands on the edge of a sturdy surface, feet back so your body is a straight line.", "Bend your elbows and bring your chest to the edge.", "Push back up to straight arms."],
+      tip: "The higher the surface, the easier it is. Go lower as you get stronger, then try floor push-ups.", mistake: "Letting your hips sag or stick up." },
+    { id: "h-dips", name: "Chair Dips", muscles: "Triceps · Shoulders", equip: "Sturdy chair",
+      hi: ["arm"], dur: 2200, props: [["bench", 28, 125, 70, 55]],
+      k: [{ h: [100, 124], s: [98, 72], a: [95, 125], f: [145, 180] },
+          { h: [104, 154], s: [102, 102], a: [95, 125], f: [145, 180] }],
+      steps: ["Sit on the edge of a sturdy chair with your hands beside your hips.", "Slide forward and lower your hips by bending your elbows straight back.", "Stop when your upper arms are level with the floor, then press back up."],
+      tip: "Keep your knees bent to make it easier, straighten your legs to make it harder.", mistake: "Using a chair with wheels or one that can tip." },
+    home("w-bbrow", { name: "Dumbbell or Backpack Row", equip: "Dumbbells or a loaded backpack",
+      steps: ["Hold dumbbells, or a backpack filled with books, and hinge forward with soft knees.", "Let the weight hang under your shoulders with a flat back.", "Pull it toward your hips, squeezing your shoulder blades, then lower."] }),
+    { id: "h-pullapart", name: "Band Pull-Apart", muscles: "Upper back · Rear delts", equip: "Resistance band", front: true,
+      hi: ["arm"], dur: 2200, band: true, props: [],
+      k: [{ h: [120, 113], s: [120, 62], a: [112, 64], a2: [128, 64], f: [112, 180], f2: [128, 180] },
+          { h: [120, 113], s: [120, 62], a: [53, 66], a2: [187, 66], f: [112, 180], f2: [128, 180] }],
+      steps: ["Hold a resistance band in front of your chest with straight arms, hands shoulder-width apart.", "Pull the band apart by moving your hands out to the sides until it touches your chest.", "Return slowly with control."],
+      tip: "Squeeze your shoulder blades together at the end. This is the home version of the cable row.", mistake: "Shrugging your shoulders up toward your ears." },
+    { id: "h-superman", name: "Superman", muscles: "Lower back · Glutes · Upper back", equip: "None",
+      hi: ["torso", "leg"], dur: 2800, props: [],
+      k: [{ h: [110, 174], s: [162, 174], a: [214, 174], f: [42, 176] },
+          { h: [110, 176], s: [160, 162], a: [208, 148], f: [46, 162] }],
+      steps: ["Lie face down with your arms stretched overhead.", "Lift your arms, chest and legs off the floor at the same time.", "Hold for 2 seconds, then lower."],
+      tip: "Look at the floor to keep your neck relaxed.", mistake: "Jerking up quickly. Lift slowly and squeeze." }
+  ],
+  quads: [
+    home("w-goblet", { name: "Squat", equip: "None (dumbbell optional)",
+      steps: ["Stand with feet a little wider than hips. Hold a dumbbell at your chest, or clasp your hands.", "Sit down between your heels, keeping your chest up.", "Press through your whole foot to stand up."] }),
+    home("w-stepup", { name: "Step-Up", equip: "Stairs or a sturdy chair", reps: "10–15 each" }),
+    home("w-lunge", { name: "Reverse Lunge", reps: "10–15 each",
+      steps: ["Stand tall with hands on hips.", "Step one foot back and lower until both knees bend to about 90°.", "Push through the front heel to return. Alternate legs."],
+      tip: "Stepping back is easier on the knees than stepping forward." }),
+    home("w-plank", { reps: "30–45 sec" }),
+    home("w-legraise")
+  ]
+};
+for (const c in WH) WH[c] = WH[c].map(e => Object.assign({}, HSTD, e));
+
 const ICONS = {
   push: '<path d="M4 14h16M7 14l2-5h6l2 5M12 9V4"/><path d="M9 6l3-3 3 3"/>',
   pull: '<path d="M3 4h18M8 4v5a4 4 0 0 0 8 0V4"/><path d="M12 13v8M9 18l3 3 3-3"/>',
@@ -507,6 +595,11 @@ const PROGRAMS = {
   women: {
     cats: { glutes: { label: "Glutes & Hams", short: "Glutes" }, upper: { label: "Upper Body", short: "Upper" }, quads: { label: "Quads & Core", short: "Quads" } },
     ex: W, restLabel: "Rest 60–90 s",
+    home: {
+      ex: WH, restLabel: "Rest 45–60 s",
+      note: "Home version: bodyweight, a sofa or chair, stairs, and optionally a resistance band and light dumbbells. 3 sets of 12–20 reps.",
+      tip: "Without heavy weights, the last few reps should feel hard. When 20 reps feel easy, slow each rep down to 3 seconds or move to the harder version in the tip."
+    },
     note: "Two lower-body days for glutes and legs, plus one upper-body day. 3 sets of 10–15 reps.",
     source: "This program follows common glute-focused training practice. It is not taken from the Healthline article. Anyone can follow either program.",
     tip: "Pick a weight where the last 2–3 reps are hard but your form holds. When you can do 15 clean reps on every set, go heavier.",
@@ -517,7 +610,8 @@ const PROGRAMS = {
   }
 };
 let prog = "ppl";
-const P_ = () => PROGRAMS[prog];
+let venue = "gym";
+const P_ = () => { const p = PROGRAMS[prog]; return venue === "home" && p.home ? Object.assign({}, p, p.home) : p; };
 const label = c => P_().cats[c].label;
 const slot = c => Object.keys(P_().cats).indexOf(c) + 1;
 
@@ -554,6 +648,7 @@ function buildFig(svg, ex) {
   if (ex.cable) P.cable = mk("line", { class: "cable", "stroke-width": 2 }, g);
   if (ex.plate) P.plate = mk("circle", { class: "propfill", r: 14, "stroke-width": 2.5 }, g);
   if (ex.roller) P.roller = mk("circle", { class: "propfill", r: 7, "stroke-width": 2 }, g);
+  if (ex.towel) P.towel = mk("line", { class: "prop", "stroke-width": 4 }, g);
   const far = mk("g", { class: "far" }, g), near = mk("g", {}, g);
   const isHi = part => ex.hi.includes(part) || (part !== "torso" && ex.hi.includes(part.replace(/\d/, "")));
   const bone = (parent, part) => mk("polyline", { class: "bone" + (isHi(part) ? " hi" : "") }, parent);
@@ -565,6 +660,7 @@ function buildFig(svg, ex) {
   [P.ua, P.fa] = armPair(near);
   if (ex.k[0].g) P.hand = mk("polyline", { class: "bone hi", "stroke-width": 6 }, near);
   if (ex.db) P.db = mk("line", { class: "db", "stroke-width": ex.dbEnd ? 13 : 9 }, near);
+  if (ex.band) P.band = mk("line", { class: "cable", "stroke-width": 3, "stroke-dasharray": "0" }, near);
   svg._parts = P; svg._ex = ex;
 }
 const lerp = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
@@ -605,6 +701,8 @@ function drawFig(svg, t) {
   if (P.cable) { const end = ex.cableTo === "f" ? f1 : h1; P.cable.setAttribute("x1", ex.cable[0]); P.cable.setAttribute("y1", ex.cable[1]); P.cable.setAttribute("x2", end[0]); P.cable.setAttribute("y2", end[1]); }
   if (P.plate) { const c = ex.plate === "s" ? [p.s[0] - 3, p.s[1] - 2] : ex.plate === "h" ? [p.h[0] + 4, p.h[1] - 10] : h1; P.plate.setAttribute("cx", c[0]); P.plate.setAttribute("cy", c[1]); }
   if (P.roller) { P.roller.setAttribute("cx", f1[0] + 2); P.roller.setAttribute("cy", f1[1] + 4); }
+  if (P.towel) { P.towel.setAttribute("x1", f1[0] - 9); P.towel.setAttribute("x2", f1[0] + 9); P.towel.setAttribute("y1", 181); P.towel.setAttribute("y2", 181); }
+  if (P.band) { P.band.setAttribute("x1", h1[0]); P.band.setAttribute("y1", h1[1]); P.band.setAttribute("x2", h2[0]); P.band.setAttribute("y2", h2[1]); }
 }
 const reduce = matchMedia("(prefers-reduced-motion: reduce)");
 const live = new Set();
@@ -625,7 +723,7 @@ let done = {};
 try { const s = JSON.parse(localStorage.getItem("ppa-done") || "{}"); if (s.day === todayKey) done = s.done || {}; } catch (e) {}
 const save = () => { try { localStorage.setItem("ppa-done", JSON.stringify({ day: todayKey, done })); } catch (e) {} };
 let cat = "push", level = "beg";
-try { const pr = localStorage.getItem("ppa-prog"); if (PROGRAMS[pr]) prog = pr; const c = localStorage.getItem("ppa-cat"); if (P_().ex[c]) cat = c; else cat = Object.keys(P_().cats)[0]; const l = localStorage.getItem("ppa-lvl"); if (l === "beg" || l === "adv") level = l; } catch (e) {}
+try { const pr = localStorage.getItem("ppa-prog"); if (PROGRAMS[pr]) prog = pr; const c = localStorage.getItem("ppa-cat"); if (P_().ex[c]) cat = c; else cat = Object.keys(P_().cats)[0]; const l = localStorage.getItem("ppa-lvl"); if (l === "beg" || l === "adv") level = l; const v = localStorage.getItem("ppa-venue"); if (v === "home") venue = v; } catch (e) {}
 
 const $ = id => document.getElementById(id);
 $("today").textContent = "Training Program · " + new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
@@ -633,6 +731,8 @@ $("today").textContent = "Training Program · " + new Date().toLocaleDateString(
 function renderPlan() {
   document.querySelectorAll("[data-lvl]").forEach(b => b.setAttribute("aria-pressed", b.dataset.lvl === level));
   document.querySelectorAll("[data-prog]").forEach(b => b.setAttribute("aria-pressed", b.dataset.prog === prog));
+  $("venueRow").hidden = !PROGRAMS[prog].home;
+  document.querySelectorAll("[data-venue]").forEach(b => b.setAttribute("aria-pressed", b.dataset.venue === venue));
   $("progNote").textContent = P_().note;
   $("source").innerHTML = P_().source;
   const days = $("days"); days.innerHTML = "";
@@ -656,6 +756,9 @@ document.querySelectorAll("[data-prog]").forEach(b => b.addEventListener("click"
   if (prog === b.dataset.prog) return;
   prog = b.dataset.prog; try { localStorage.setItem("ppa-prog", prog); } catch (e) {}
   setCat(Object.keys(P_().cats)[0]);
+}));
+document.querySelectorAll("[data-venue]").forEach(b => b.addEventListener("click", () => {
+  venue = b.dataset.venue; try { localStorage.setItem("ppa-venue", venue); } catch (e) {} renderList();
 }));
 function renderTabs() {
   const t = $("tabs"); t.innerHTML = "";
