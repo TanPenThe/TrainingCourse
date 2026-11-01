@@ -98,6 +98,9 @@ h1 span { color: var(--accent); transition: color .3s; }
 .plan .prog-note { margin: 6px 2px 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 
 .list { display: flex; flex-direction: column; gap: 10px; }
+.divider { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 10px; padding: 0 4px 2px; border-bottom: 2px solid var(--accent); }
+.divider b { font-family: var(--display); font-weight: 900; font-size: 22px; text-transform: uppercase; letter-spacing: .02em; }
+.divider span { font-size: 13px; color: var(--muted); }
 .card { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; text-align: left;
   background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 8px 12px 8px 8px; }
 .card .thumb { width: 96px; height: 80px; border-radius: 10px; background: var(--stage); display: block; }
@@ -354,7 +357,29 @@ const EX = {
       k: [{ h: [120, 113], s: [120, 61], a: [124, 114], f: [120, 180] },
           { h: [120, 113], s: [120, 61], a: [134, 68], f: [120, 180] }],
       steps: ["Hold a barbell or dumbbells with an underhand, shoulder-width grip.", "Keeping your elbows at your sides, raise the weight until your forearms are vertical.", "Pause at the top, then lower slowly to the start."],
-      tip: "Take about two seconds on the way down.", mistake: "Swinging your hips to lift the weight." }
+      tip: "Take about two seconds on the way down.", mistake: "Swinging your hips to lift the weight." },
+    // Forearm finisher: lighter sets with short rests, done last so grip fatigue doesn't hurt the main lifts.
+    { id: "hammer", finisher: true, name: "Hammer Curl", muscles: "Forearms · Biceps", equip: "Dumbbells",
+      sets: 3, setsLabel: "3", reps: "10–12", rest: 50, restLabel: "Rest 45–60 s",
+      hi: ["forearm"], dur: 2200, db: true, dbEnd: true, props: [],
+      k: [{ h: [120, 113], s: [120, 61], a: [124, 114], f: [120, 180] },
+          { h: [120, 113], s: [120, 61], a: [134, 68], f: [120, 180] }],
+      steps: ["Stand tall with dumbbells at your sides, palms facing your thighs.", "Keep your palms facing in and curl the weights up, elbows pinned to your sides.", "Lower slowly to the start."],
+      tip: "The thumbs-up grip shifts the work onto the forearm and the brachialis, the muscle under your biceps.", mistake: "Rotating your palms up as you lift. Keep them facing each other." },
+    { id: "wristcurl", finisher: true, name: "Wrist Curl", muscles: "Forearm flexors · Grip", equip: "Dumbbells, bench",
+      sets: 3, setsLabel: "3", reps: "15–20", rest: 50, restLabel: "Rest 45–60 s",
+      hi: ["forearm"], dur: 1800, db: true, props: [["bench", 70, 140, 50, 40]],
+      k: [{ h: [100, 134], s: [126, 92], a: [140, 124], g: [148, 134], f: [140, 180] },
+          { h: [100, 134], s: [126, 92], a: [140, 124], g: [149, 113], f: [140, 180] }],
+      steps: ["Sit on a bench and rest your forearms on your thighs, palms up, wrists just past your knees.", "Let the dumbbells roll down toward your fingertips.", "Curl your wrists up as high as you can, squeeze, then lower slowly."],
+      tip: "Only your wrists move. Your forearms stay glued to your thighs.", mistake: "Going too heavy and jerking the weight. Use a light dumbbell and high reps." },
+    { id: "carry", finisher: true, name: "Farmer's Carry", muscles: "Grip · Traps · Core", equip: "Heavy dumbbells",
+      sets: 3, setsLabel: "3", reps: "40 m", rest: 50, restLabel: "Rest 45–60 s",
+      hi: ["forearm"], dur: 1100, db: true, dbEnd: true, props: [],
+      k: [{ h: [120, 115], s: [121, 63], a: [123, 116], a2: [119, 116], f: [138, 180], f2: [104, 180] },
+          { h: [120, 115], s: [121, 63], a: [123, 116], a2: [119, 116], f: [104, 180], f2: [138, 180] }],
+      steps: ["Pick up a heavy dumbbell in each hand and stand tall.", "Walk with short, steady steps, shoulders back and core tight.", "Go about 40 metres, or 30–45 seconds, then set the weights down with control."],
+      tip: "Squeeze the handles as hard as you can the whole way.", mistake: "Leaning to one side or letting your shoulders round forward." }
   ],
   legs: [
     { id: "deadlift", name: "Deadlift", muscles: "Glutes · Hamstrings · Back", equip: "Barbell",
@@ -434,7 +459,9 @@ const W = {
     reuse("inclinepress"),
     reuse("bbrow", { name: "Bent-Over Dumbbell Row", equip: "Dumbbells" }),
     reuse("lateral"),
-    reuse("pushdown")
+    reuse("pushdown"),
+    reuse("hammer", { finisher: true, reps: "10–12", rest: 50, restLabel: "Rest 45–60 s" }),
+    reuse("carry", { finisher: true, reps: "40 m", rest: 50, restLabel: "Rest 45–60 s" })
   ],
   quads: [
     { id: "w-goblet", name: "Goblet Squat", muscles: "Quads · Glutes · Core", equip: "Dumbbell or kettlebell",
@@ -544,7 +571,9 @@ function buildFig(svg, ex) {
   P.leg = bone(near, "leg"); P.torso = bone(near, "torso"); P.neck = bone(near, "torso");
   if (ex.front) { P.sbar = bone(near, "torso"); P.hbar = bone(near, "torso"); }
   P.head = mk("circle", { class: "head", r: 9.5 }, near);
-  [P.ua, P.fa] = armPair(near); if (ex.db) P.db = mk("line", { class: "db", "stroke-width": 9 }, near);
+  [P.ua, P.fa] = armPair(near);
+  if (ex.k[0].g) P.hand = mk("polyline", { class: "bone hi", "stroke-width": 6 }, near);
+  if (ex.db) P.db = mk("line", { class: "db", "stroke-width": ex.dbEnd ? 13 : 9 }, near);
   svg._parts = P; svg._ex = ex;
 }
 const lerp = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
@@ -558,6 +587,7 @@ function poseAt(ex, t) {
   out.a2 = lerp(A.a2 || A.a, B.a2 || B.a, local); out.f2 = lerp(A.f2 || A.f, B.f2 || B.f, local);
   if (A.t) out.t = lerp(A.t, B.t, local);
   if (A.hc) out.hc = lerp(A.hc, B.hc, local);
+  if (A.g) out.g = lerp(A.g, B.g, local);
   return out;
 }
 function drawFig(svg, t) {
@@ -577,9 +607,10 @@ function drawFig(svg, t) {
   const arm = (ua, fa, s, e, h) => { if (fa) { ua.setAttribute("points", pts([s, e])); fa.setAttribute("points", pts([e, h])); } else ua.setAttribute("points", pts([s, e, h])); };
   arm(P.ua, P.fa, sA, e1, h1); arm(P.ua2, P.fa2, sB, e2, h2);
   const dbl = (line, hand, elbow) => { if (!line) return; const fx = hand[0] - elbow[0], fy = hand[1] - elbow[1], fd = Math.hypot(fx, fy) || 1;
-    const px = -fy / fd * 8, py = fx / fd * 8, cx = hand[0] + fx / fd * 3, cy = hand[1] + fy / fd * 3;
+    const half = ex.dbEnd ? 1.5 : 8, px = -fy / fd * half, py = fx / fd * half, cx = hand[0] + fx / fd * 3, cy = hand[1] + fy / fd * 3;
     line.setAttribute("x1", cx - px); line.setAttribute("y1", cy - py); line.setAttribute("x2", cx + px); line.setAttribute("y2", cy + py); };
-  dbl(P.db, h1, e1); dbl(P.db2, h2, e2);
+  if (P.hand) { P.hand.setAttribute("points", pts([h1, p.g])); dbl(P.db, p.g, h1); } else dbl(P.db, h1, e1);
+  if (P.hand) { if (P.db2) P.db2.setAttribute("stroke-width", 0); } else dbl(P.db2, h2, e2);
   if (P.cable) { const end = ex.cableTo === "f" ? f1 : h1; P.cable.setAttribute("x1", ex.cable[0]); P.cable.setAttribute("y1", ex.cable[1]); P.cable.setAttribute("x2", end[0]); P.cable.setAttribute("y2", end[1]); }
   if (P.plate) { const c = ex.plate === "s" ? [p.s[0] - 3, p.s[1] - 2] : ex.plate === "h" ? [p.h[0] + 4, p.h[1] - 10] : h1; P.plate.setAttribute("cx", c[0]); P.plate.setAttribute("cy", c[1]); }
   if (P.roller) { P.roller.setAttribute("cx", f1[0] + 2); P.roller.setAttribute("cy", f1[1] + 4); }
@@ -653,7 +684,14 @@ function renderList() {
   $("catTitle").textContent = label(cat);
   renderTabs();
   const list = $("list"); list.innerHTML = "";
+  let prevFinisher = false;
   for (const ex of P_().ex[cat]) {
+    if (ex.finisher && !prevFinisher) {
+      const dv = document.createElement("div"); dv.className = "divider";
+      dv.innerHTML = `<b>Forearm finisher</b><span>Do these last · ${ex.restLabel.replace("Rest ", "rest ")}</span>`;
+      list.appendChild(dv);
+    }
+    prevFinisher = !!ex.finisher;
     const b = document.createElement("div");
     b.className = "card" + (done[ex.id] ? " done" : "");
     b.innerHTML = `<button type="button" class="card-open"><svg class="thumb fig" viewBox="20 0 210 200" preserveAspectRatio="xMidYMid meet"></svg>
@@ -713,7 +751,7 @@ function openDetail(ex) {
   figure($("dFig"), ex);
   $("dName").textContent = ex.name;
   $("dChips").innerHTML = "";
-  const chips = [[`${ex.setsLabel} sets × ${ex.reps} reps`, true], [ex.muscles, false], [ex.equip, false], [P_().restLabel, false]];
+  const chips = [[`${ex.setsLabel} sets × ${ex.reps}${/^\d+(–\d+)?$/.test(ex.reps) ? " reps" : ""}`, true], [ex.muscles, false], [ex.equip, false], [ex.restLabel || P_().restLabel, false]];
   for (const [t, hot] of chips) { const c = document.createElement("span"); c.className = "chip" + (hot ? " hot" : ""); c.textContent = t; $("dChips").appendChild(c); }
   $("dSteps").innerHTML = ""; for (const s of ex.steps) { const li = document.createElement("li"); li.textContent = s; $("dSteps").appendChild(li); }
   $("dNote").innerHTML = "";
@@ -763,7 +801,7 @@ function renderWorkout() {
       <div class="rest">
         <svg class="ring" viewBox="0 0 220 220"><circle cx="110" cy="110" r="${R}" fill="none" stroke="var(--line)" stroke-width="12"/>
           <circle id="ringArc" cx="110" cy="110" r="${R}" fill="none" stroke="var(--accent)" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="0" transform="rotate(-90 110 110)"/>
-          <text id="ringNum" x="110" y="120" text-anchor="middle">${fmt(wk.left)}</text><text class="sub" x="110" y="150" text-anchor="middle">${P_().restLabel.toUpperCase()}</text></svg>
+          <text id="ringNum" x="110" y="120" text-anchor="middle">${fmt(wk.left)}</text><text class="sub" x="110" y="150" text-anchor="middle">${(wk.restLabel || P_().restLabel).toUpperCase()}</text></svg>
         <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button class="ghost" type="button" data-act="add">+30 s</button><button class="ghost" type="button" data-act="skip">Skip rest</button></div>
         <p class="up-next">Up next: <b>${next ? next.name : "Finish"}</b>${next ? ` · set ${last ? 1 : wk.set} of ${next.sets}` : ""}</p>
       </div>`;
@@ -780,7 +818,7 @@ function renderWorkout() {
   w.innerHTML = `${head}<svg class="stage fig" id="wkFig" viewBox="0 0 240 200"></svg>
     <div class="wk-name"></div>
     <div class="wk-sets">${setBars}</div>
-    <div class="wk-reps"><b>${ex.reps}</b><span>${/sec/.test(ex.reps) ? "" : "reps · "}set ${wk.set} of ${ex.sets}</span></div>
+    <div class="wk-reps"><b>${ex.reps}</b><span>${/^\d+(–\d+)?$/.test(ex.reps) ? "reps · " : ""}set ${wk.set} of ${ex.sets}</span></div>
     <p class="cue"></p>
     <div class="wk-row">
       <button class="start" type="button" data-act="done">Set done</button>
@@ -805,7 +843,7 @@ $("wkWrap").addEventListener("click", e => {
     wk.set++;
     if (wk.set > ex.sets) { done[ex.id] = true; save(); }
     if (wk.set > ex.sets && wk.i === wk.queue.length - 1) { wk.i++; return renderWorkout(); }
-    wk.resting = true; wk.left = ex.rest; renderWorkout();
+    wk.resting = true; wk.left = ex.rest; wk.restLabel = ex.restLabel; renderWorkout();
   }
   if (act === "skip") afterRest();
   if (act === "add") { wk.left += 30; wk.total = Math.max(wk.total, wk.left); const n = $("ringNum"); if (n) n.textContent = fmt(wk.left); }
