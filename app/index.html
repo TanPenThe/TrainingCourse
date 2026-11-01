@@ -500,7 +500,7 @@ const W = {
 };
 for (const c in W) W[c] = W[c].map(e => Object.assign({}, WSTD, e));
 
-// Women's home version: bodyweight, a sofa or chair, stairs, and optionally a resistance band and light dumbbells.
+// Women's home version: bodyweight, a sofa or chair, and a resistance band.
 const HSTD = { sets: 3, setsLabel: "3", reps: "12–20", rest: 50 };
 const wfind = id => Object.values(W).flat().find(e => e.id === id);
 const home = (id, extra) => Object.assign({}, wfind(id), HSTD, { id: "h-" + id.replace(/^w-/, "") }, extra);
@@ -544,14 +544,15 @@ const WH = {
           { h: [104, 154], s: [102, 102], a: [95, 125], f: [145, 180] }],
       steps: ["Sit on the edge of a sturdy chair with your hands beside your hips.", "Slide forward and lower your hips by bending your elbows straight back.", "Stop when your upper arms are level with the floor, then press back up."],
       tip: "Keep your knees bent to make it easier, straighten your legs to make it harder.", mistake: "Using a chair with wheels or one that can tip." },
-    home("w-bbrow", { name: "Dumbbell or Backpack Row", equip: "Dumbbells or a loaded backpack",
-      steps: ["Hold dumbbells, or a backpack filled with books, and hinge forward with soft knees.", "Let the weight hang under your shoulders with a flat back.", "Pull it toward your hips, squeezing your shoulder blades, then lower."] }),
+    home("w-bbrow", { id: "h-bandrow", name: "Banded Bent-Over Row", equip: "Resistance band", db: false, band: true, bandTo: "f",
+      steps: ["Stand on the middle of the band with feet hip-width apart and hold one end in each hand.", "Hinge forward with soft knees and a flat back, arms hanging straight.", "Pull your elbows back toward your hips, squeeze your shoulder blades, then lower slowly."],
+      tip: "Stand with feet wider apart, or hold the band lower, to make it harder.", mistake: "Rounding your back. Keep your chest proud." }),
     { id: "h-pullapart", name: "Band Pull-Apart", muscles: "Upper back · Rear delts", equip: "Resistance band", front: true,
       hi: ["arm"], dur: 2200, band: true, props: [],
       k: [{ h: [120, 113], s: [120, 62], a: [112, 64], a2: [128, 64], f: [112, 180], f2: [128, 180] },
           { h: [120, 113], s: [120, 62], a: [53, 66], a2: [187, 66], f: [112, 180], f2: [128, 180] }],
       steps: ["Hold a resistance band in front of your chest with straight arms, hands shoulder-width apart.", "Pull the band apart by moving your hands out to the sides until it touches your chest.", "Return slowly with control."],
-      tip: "Squeeze your shoulder blades together at the end. This is the home version of the cable row.", mistake: "Shrugging your shoulders up toward your ears." },
+      tip: "A 40 kg band is strong for this. Hold it much wider than your shoulders, which makes it lighter, and only move as far as you can with control.", mistake: "Shrugging your shoulders up toward your ears." },
     { id: "h-superman", name: "Superman", muscles: "Lower back · Glutes · Upper back", equip: "None",
       hi: ["torso", "leg"], dur: 2800, props: [],
       k: [{ h: [110, 174], s: [162, 174], a: [214, 174], f: [42, 176] },
@@ -560,9 +561,17 @@ const WH = {
       tip: "Look at the floor to keep your neck relaxed.", mistake: "Jerking up quickly. Lift slowly and squeeze." }
   ],
   quads: [
-    home("w-goblet", { name: "Squat", equip: "None (dumbbell optional)",
-      steps: ["Stand with feet a little wider than hips. Hold a dumbbell at your chest, or clasp your hands.", "Sit down between your heels, keeping your chest up.", "Press through your whole foot to stand up."] }),
-    home("w-stepup", { name: "Step-Up", equip: "Stairs or a sturdy chair", reps: "10–15 each" }),
+    home("w-goblet", { id: "h-bandsquat", name: "Banded Squat", equip: "Resistance band", db: false, band: true, bandTo: "f", reps: "12–15",
+      k: [{ h: [118, 113], s: [120, 61], a: [122, 70], f: [120, 180] },
+          { h: [82, 148], s: [113, 106], a: [115, 115], f: [120, 180] }],
+      steps: ["Stand on the band with feet a little wider than hips.", "Loop the top of the band over your shoulders, behind your neck, and hold it in place at your shoulders.", "Sit down between your heels, keeping your chest up, then press through your whole foot to stand up against the band."],
+      tip: "The band is hardest at the top, so squeeze your glutes and stand all the way up on every rep.", mistake: "Letting the band pull you forward. Keep your weight in your heels." }),
+    { id: "h-bulgarian", name: "Bulgarian Split Squat", muscles: "Quads · Glutes", equip: "Sofa or sturdy chair", reps: "8–12 each",
+      hi: ["leg"], dur: 2800, props: [["bench", 36, 140, 48, 40]],
+      k: [{ h: [112, 116], s: [114, 64], a: [116, 116], f: [140, 180], f2: [70, 140] },
+          { h: [108, 146], s: [110, 94], a: [112, 146], f: [140, 180], f2: [70, 140] }],
+      steps: ["Stand a big step in front of a sofa and rest the top of your back foot on the seat.", "Lower straight down until your front thigh is about level with the floor.", "Push through your front heel to stand back up. Finish all reps, then switch legs."],
+      tip: "Hold the band under your front foot and up to your shoulders to make it harder.", mistake: "Standing too close to the sofa so your front knee shoots far past your toes." },
     home("w-lunge", { name: "Reverse Lunge", reps: "10–15 each",
       steps: ["Stand tall with hands on hips.", "Step one foot back and lower until both knees bend to about 90°.", "Push through the front heel to return. Alternate legs."],
       tip: "Stepping back is easier on the knees than stepping forward." }),
@@ -597,7 +606,7 @@ const PROGRAMS = {
     ex: W, restLabel: "Rest 60–90 s",
     home: {
       ex: WH, restLabel: "Rest 45–60 s",
-      note: "Home version: bodyweight, a sofa or chair, stairs, and optionally a resistance band and light dumbbells. 3 sets of 12–20 reps.",
+      note: "Home version: bodyweight, a sofa or chair, and a resistance band. 3 sets of 12–20 reps.",
       tip: "Without heavy weights, the last few reps should feel hard. When 20 reps feel easy, slow each rep down to 3 seconds or move to the harder version in the tip."
     },
     note: "Two lower-body days for glutes and legs, plus one upper-body day. 3 sets of 10–15 reps.",
@@ -702,7 +711,7 @@ function drawFig(svg, t) {
   if (P.plate) { const c = ex.plate === "s" ? [p.s[0] - 3, p.s[1] - 2] : ex.plate === "h" ? [p.h[0] + 4, p.h[1] - 10] : h1; P.plate.setAttribute("cx", c[0]); P.plate.setAttribute("cy", c[1]); }
   if (P.roller) { P.roller.setAttribute("cx", f1[0] + 2); P.roller.setAttribute("cy", f1[1] + 4); }
   if (P.towel) { P.towel.setAttribute("x1", f1[0] - 9); P.towel.setAttribute("x2", f1[0] + 9); P.towel.setAttribute("y1", 181); P.towel.setAttribute("y2", 181); }
-  if (P.band) { P.band.setAttribute("x1", h1[0]); P.band.setAttribute("y1", h1[1]); P.band.setAttribute("x2", h2[0]); P.band.setAttribute("y2", h2[1]); }
+  if (P.band) { const from = ex.bandTo === "f" ? [f1[0] + 4, f1[1]] : h2; P.band.setAttribute("x1", h1[0]); P.band.setAttribute("y1", h1[1]); P.band.setAttribute("x2", from[0]); P.band.setAttribute("y2", from[1]); }
 }
 const reduce = matchMedia("(prefers-reduced-motion: reduce)");
 const live = new Set();
