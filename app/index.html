@@ -581,6 +581,81 @@ const WH = {
 };
 for (const c in WH) WH[c] = WH[c].map(e => Object.assign({}, HSTD, e));
 
+// ---------- Warm-ups: about 5–6 minutes of easy movement before each day's workout ----------
+// Done once each, straight through with no rest. Ids are per day so ticking one off doesn't tick the others.
+const WU = { sets: 1, setsLabel: "1", rest: 0, restLabel: "No rest, go straight to the next move", warmup: true };
+const WARM = {
+  jog: { name: "Jog in Place", muscles: "Heart rate · Whole body", equip: "None", reps: "2 min",
+    hi: ["leg"], dur: 700, props: [],
+    k: [{ h: [120, 112], s: [121, 60], a: [110, 100], a2: [136, 90], f: [120, 179], f2: [128, 150] },
+        { h: [120, 112], s: [121, 60], a: [136, 90], a2: [110, 100], f: [128, 150], f2: [120, 179] }],
+    steps: ["Jog gently on the spot, lifting your knees to about hip height.", "Swing your arms naturally, opposite arm to leg.", "Start easy and build up so you are breathing a little harder by the end."],
+    tip: "On a bad knee day, march in place instead.", mistake: "Starting too fast. This is to warm up, not to tire you out." },
+  armcircles: { name: "Arm Circles", muscles: "Shoulders", equip: "None", reps: "30 sec", front: true, loop: true,
+    hi: ["arm"], dur: 1400, props: [],
+    k: [{ h: [120, 113], s: [120, 62], a: [52, 54], a2: [188, 54], f: [112, 180], f2: [128, 180] },
+        { h: [120, 113], s: [120, 62], a: [44, 62], a2: [196, 62], f: [112, 180], f2: [128, 180] },
+        { h: [120, 113], s: [120, 62], a: [52, 70], a2: [188, 70], f: [112, 180], f2: [128, 180] },
+        { h: [120, 113], s: [120, 62], a: [60, 62], a2: [180, 62], f: [112, 180], f2: [128, 180] }],
+    steps: ["Stand tall with your arms straight out to the sides.", "Make small circles forward for 15 seconds, growing them bigger.", "Reverse and circle backward for 15 seconds."],
+    tip: "Keep your shoulders down, away from your ears.", mistake: "Swinging wildly. Keep the circles smooth and controlled." },
+  catcow: { name: "Cat-Cow", muscles: "Spine · Lower and upper back", equip: "None", reps: "10 slow",
+    hi: ["torso"], dur: 3600, props: [],
+    k: [{ h: [100, 130], m: [125, 112], s: [150, 126], a: [150, 178], f: [66, 176], hc: [158, 142] },
+        { h: [100, 130], m: [125, 140], s: [150, 126], a: [150, 178], f: [66, 176], hc: [163, 112] }],
+    steps: ["Start on hands and knees, hands under shoulders, knees under hips.", "Breathe in, drop your belly and lift your chest and head (cow).", "Breathe out, round your back toward the ceiling and tuck your chin (cat)."],
+    tip: "Move one segment of the spine at a time, like a wave.", mistake: "Rushing. Each position should take a full breath." },
+  thread: { name: "Thread the Needle", muscles: "Upper back · Rotation", equip: "None", reps: "6 each side",
+    hi: ["torso", "arm"], dur: 3200, props: [],
+    k: [{ h: [100, 130], s: [150, 126], a: [112, 170], a2: [150, 178], f: [66, 176] },
+        { h: [100, 130], s: [150, 124], a: [154, 72], a2: [150, 178], f: [66, 176] }],
+    steps: ["Start on hands and knees.", "Slide one arm under your body, palm up, letting that shoulder drop toward the floor.", "Then sweep the same arm up toward the ceiling, following your hand with your eyes. Do all reps, then switch sides."],
+    tip: "This loosens the upper back so you can row and pull with better posture.", mistake: "Twisting from the hips. Keep your hips still over your knees." },
+  scappull: { name: "Scapular Pull-Up", muscles: "Lats · Lower traps", equip: "Pull-up bar", reps: "10",
+    hi: ["torso"], dur: 2200, noFloor: true, props: [["bar", 70, 14, 170]],
+    k: [{ h: [120, 123], s: [122, 71], a: [124, 14], f: [118, 190] },
+        { h: [120, 119.5], s: [122, 67.5], a: [124, 14], f: [118, 186.5] }],
+    steps: ["Hang from a pull-up bar with straight arms.", "Without bending your elbows, pull your shoulder blades down and together so your body rises a few centimetres.", "Pause for a second, then relax back to a full hang."],
+    tip: "This switches on your lats before rows and pulldowns. If hanging is too hard, do it with your toes on a box.", mistake: "Bending the elbows. The arms stay straight; only the shoulder blades move." },
+  scappush: { name: "Scapular Push-Up", muscles: "Serratus · Shoulder blades", equip: "None", reps: "10",
+    hi: ["torso"], dur: 2000, props: [],
+    k: [{ h: [113, 150.5], s: [160, 128], a: [160, 180], f: [52, 180] },
+        { h: [113, 153], s: [160, 133], a: [160, 180], f: [52, 180] }],
+    steps: ["Start at the top of a push-up with straight arms.", "Keep your arms locked and let your chest sink a little as your shoulder blades squeeze together.", "Push the floor away to spread your shoulder blades apart. That is one rep."],
+    tip: "Do it on your knees if a full plank is too hard.", mistake: "Bending the elbows. This is a small movement from the shoulder blades only." },
+  legswing: { name: "Leg Swings", muscles: "Hips · Hamstrings", equip: "A wall to hold", reps: "10 each leg",
+    hi: ["leg"], dur: 1600, props: [["col", 172, 40, 180]],
+    k: [{ h: [120, 113], s: [122, 61], a: [166, 80], f: [176, 140], f2: [118, 180] },
+        { h: [120, 113], s: [120, 61], a: [166, 80], f: [70, 150], f2: [118, 180] }],
+    steps: ["Stand side-on to a wall and hold it with one hand.", "Swing the outside leg forward and back like a pendulum, keeping it fairly straight.", "Let the swings grow bigger gradually. Do all reps, then switch legs."],
+    tip: "Stand tall the whole time. The leg moves, not your back.", mistake: "Kicking hard from the start. Build up slowly." },
+  bwsquat: { name: "Bodyweight Squat", muscles: "Quads · Glutes · Hips", equip: "None", reps: "10 slow",
+    hi: ["leg"], dur: 3000, props: [],
+    k: [{ h: [118, 113], s: [120, 61], a: [170, 62], f: [120, 180] },
+        { h: [82, 148], s: [113, 106], a: [164, 104], f: [120, 180] }],
+    steps: ["Stand with feet shoulder-width apart, arms out in front for balance.", "Sit down as deep as is comfortable, chest up, knees over toes.", "Pause for a second at the bottom, then stand up."],
+    tip: "Go a little deeper each rep to open up the hips.", mistake: "Heels coming off the floor." },
+  bridge: { name: "Glute Bridge", muscles: "Glutes · Lower back", equip: "None", reps: "10",
+    hi: ["leg", "torso"], dur: 2400, kn: 1, props: [],
+    k: [{ h: [110, 174], s: [162, 174], a: [128, 177], f: [80, 178] },
+        { h: [112, 150], s: [162, 174], a: [128, 177], f: [80, 178] }],
+    steps: ["Lie on your back with knees bent and feet flat.", "Press through your heels and lift your hips.", "Squeeze your glutes for a second at the top, then lower."],
+    tip: "Waking up the glutes takes pressure off the lower back in squats and deadlifts.", mistake: "Arching the lower back instead of squeezing the glutes." }
+};
+const DAY_WARMUPS = {
+  ppl: { push: ["jog", "armcircles", "catcow", "scappush"],
+         pull: ["jog", "catcow", "thread", "armcircles", "scappull"],
+         legs: ["jog", "legswing", "bwsquat", "bridge", "catcow"] },
+  women: { glutes: ["jog", "legswing", "bridge", "bwsquat"],
+           upper: ["jog", "armcircles", "catcow", "thread", "scappush"],
+           quads: ["jog", "legswing", "bwsquat", "bridge"] }
+};
+function addWarmups(prog, lib, tag) {
+  for (const [day, keys] of Object.entries(DAY_WARMUPS[prog]))
+    lib[day].unshift(...keys.map(k => Object.assign({}, WU, WARM[k], { id: `wu-${tag}-${day}-${k}` })));
+}
+addWarmups("ppl", EX, "m"); addWarmups("women", W, "w"); addWarmups("women", WH, "wh");
+
 const ICONS = {
   push: '<path d="M4 14h16M7 14l2-5h6l2 5M12 9V4"/><path d="M9 6l3-3 3 3"/>',
   pull: '<path d="M3 4h18M8 4v5a4 4 0 0 0 8 0V4"/><path d="M12 13v8M9 18l3 3 3-3"/>',
@@ -675,15 +750,22 @@ function buildFig(svg, ex) {
 const lerp = (p, q, t) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
 const pts = a => a.map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
 function poseAt(ex, t) {
-  const n = ex.k.length, segs = 2 * (n - 1), x = t * segs, i = Math.min(segs - 1, Math.floor(x));
-  let local = x - i; local = Math.min(1, Math.max(0, (local - 0.08) / 0.84)); local = 0.5 - 0.5 * Math.cos(Math.PI * local);
-  const ia = i < n - 1 ? i : segs - i, ib = i < n - 1 ? i + 1 : segs - i - 1;
+  const n = ex.k.length;
+  let ia, ib, local;
+  if (ex.loop) { // go round the keyframes in a circle at a steady speed
+    const x = t * n, i = Math.min(n - 1, Math.floor(x)); ia = i; ib = (i + 1) % n; local = x - i;
+  } else {
+    const segs = 2 * (n - 1), x = t * segs, i = Math.min(segs - 1, Math.floor(x));
+    local = x - i; local = Math.min(1, Math.max(0, (local - 0.08) / 0.84)); local = 0.5 - 0.5 * Math.cos(Math.PI * local);
+    ia = i < n - 1 ? i : segs - i; ib = i < n - 1 ? i + 1 : segs - i - 1;
+  }
   const A = ex.k[ia], B = ex.k[ib], out = {};
   for (const key of ["h", "s", "a", "f"]) out[key] = lerp(A[key], B[key], local);
   out.a2 = lerp(A.a2 || A.a, B.a2 || B.a, local); out.f2 = lerp(A.f2 || A.f, B.f2 || B.f, local);
   if (A.t) out.t = lerp(A.t, B.t, local);
   if (A.hc) out.hc = lerp(A.hc, B.hc, local);
   if (A.g) out.g = lerp(A.g, B.g, local);
+  if (A.m) out.m = lerp(A.m, B.m, local);
   return out;
 }
 function drawFig(svg, t) {
@@ -693,7 +775,7 @@ function drawFig(svg, t) {
   const [e1, h1] = ik(sA, p.a, L.ua, L.fa, el), [e2, h2] = ik(sB, p.a2, L.ua, L.fa, elB);
   const [k1, f1] = ik(hA, p.f, L.th, L.sh, knA), [k2, f2] = ik(hB, p.f2, L.th, L.sh, knB);
   const dx = p.s[0] - p.h[0], dy = p.s[1] - p.h[1], d = Math.hypot(dx, dy), ux = dx / d, uy = dy / d;
-  P.torso.setAttribute("points", pts([p.h, p.s]));
+  P.torso.setAttribute("points", pts(p.m ? [p.h, p.m, p.s] : [p.h, p.s]));
   if (ex.front) { P.sbar.setAttribute("points", pts([sA, sB])); P.hbar.setAttribute("points", pts([hA, hB])); }
   P.neck.setAttribute("points", pts([p.s, [p.s[0] + ux * 5, p.s[1] + uy * 5]]));
   const hc = p.hc || [p.s[0] + ux * 16, p.s[1] + uy * 16];
@@ -787,14 +869,19 @@ function renderList() {
   $("catTitle").textContent = label(cat);
   renderTabs();
   const list = $("list"); list.innerHTML = "";
-  let prevFinisher = false;
-  for (const ex of P_().ex[cat]) {
-    if (ex.finisher && !prevFinisher) {
+  let prevSec = null;
+  const dayList = P_().ex[cat], warmMins = Math.round(dayList.filter(e => e.warmup).length * 1.3 + 1);
+  for (const ex of dayList) {
+    const sec = ex.warmup ? "warm" : ex.finisher ? "fin" : "main";
+    if (sec !== prevSec && (sec !== "main" || prevSec === "warm")) {
       const dv = document.createElement("div"); dv.className = "divider";
-      dv.innerHTML = `<b>Forearm finisher</b><span>Do these last · ${ex.restLabel.replace("Rest ", "rest ")}</span>`;
+      const head = { warm: ["Warm-up", `About ${warmMins} min · no rest between moves`],
+                     main: ["Workout", P_().restLabel.replace("Rest ", "rest ") + " between sets"],
+                     fin: ["Forearm finisher", `Do these last · ${(ex.restLabel || "").replace("Rest ", "rest ")}`] }[sec];
+      dv.innerHTML = `<b>${head[0]}</b><span>${head[1]}</span>`;
       list.appendChild(dv);
     }
-    prevFinisher = !!ex.finisher;
+    prevSec = sec;
     const b = document.createElement("div");
     b.className = "card" + (done[ex.id] ? " done" : "");
     b.innerHTML = `<button type="button" class="card-open"><svg class="thumb fig" viewBox="20 0 210 200" preserveAspectRatio="xMidYMid meet"></svg>
@@ -802,7 +889,7 @@ function renderList() {
       <button type="button" class="check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></button>`;
     b.querySelector("h3").textContent = ex.name;
     b.querySelector(".muscles").textContent = ex.muscles;
-    b.querySelector(".dose").innerHTML = `${ex.setsLabel} × ${ex.reps}`;
+    b.querySelector(".dose").innerHTML = ex.warmup ? ex.reps : `${ex.setsLabel} × ${ex.reps}`;
     const sm = document.createElement("small"); sm.textContent = ex.equip; b.querySelector(".dose").appendChild(sm);
     const open = b.querySelector(".card-open"), chk = b.querySelector(".check"); chk.dataset.id = ex.id;
     open.setAttribute("aria-label", `${ex.name}, ${ex.setsLabel} sets of ${ex.reps}. Show how to do it`);
@@ -812,10 +899,10 @@ function renderList() {
     chk.addEventListener("click", () => askToggle(ex, chk));
     list.appendChild(b);
   }
-  const all = P_().ex[cat], n = all.filter(e => done[e.id]).length;
+  const all = P_().ex[cat].filter(e => !e.warmup), n = all.filter(e => done[e.id]).length;
   $("doneCount").textContent = n; $("totalCount").textContent = all.length;
   $("progBar").style.width = (n / all.length * 100) + "%";
-  const mins = Math.round(all.reduce((m, e) => m + e.sets * (45 + e.rest), 0) / 60);
+  const mins = Math.round(P_().ex[cat].reduce((m, e) => m + (e.warmup ? 75 : e.sets * (45 + e.rest)), 0) / 60);
   $("timeEst").textContent = `~${mins} min`;
   $("startBtn").textContent = n === all.length ? "Do it again" : n ? "Continue workout" : "Start workout";
   renderPlan();
@@ -854,7 +941,7 @@ function openDetail(ex) {
   figure($("dFig"), ex);
   $("dName").textContent = ex.name;
   $("dChips").innerHTML = "";
-  const chips = [[`${ex.setsLabel} sets × ${ex.reps}${/^\d+(–\d+)?$/.test(ex.reps) ? " reps" : ""}`, true], [ex.muscles, false], [ex.equip, false], [ex.restLabel || P_().restLabel, false]];
+  const chips = [[ex.warmup ? `Warm-up · ${ex.reps}` : `${ex.setsLabel} sets × ${ex.reps}${/^\d+(–\d+)?$/.test(ex.reps) ? " reps" : ""}`, true], [ex.muscles, false], [ex.equip, false], [ex.restLabel || P_().restLabel, false]];
   for (const [t, hot] of chips) { const c = document.createElement("span"); c.className = "chip" + (hot ? " hot" : ""); c.textContent = t; $("dChips").appendChild(c); }
   $("dSteps").innerHTML = ""; for (const s of ex.steps) { const li = document.createElement("li"); li.textContent = s; $("dSteps").appendChild(li); }
   $("dNote").innerHTML = "";
@@ -872,7 +959,7 @@ $("dDo").addEventListener("click", () => { closeDetail(); startWorkout([current]
 // ---------- Workout mode ----------
 let wk = null, wakeLock = null, timer = null;
 function startWorkout(list) {
-  const all = P_().ex[cat], src = list || (all.every(e => done[e.id]) ? all : all.filter(e => !done[e.id]));
+  const all = P_().ex[cat], src = list || (all.filter(e => !e.warmup).every(e => done[e.id]) ? all : all.filter(e => !done[e.id]));
   wk = { queue: src.map(e => Object.assign({}, e)), i: 0, set: 1, resting: false, left: 0, total: 0 };
   $("workout").classList.add("open");
   try { navigator.wakeLock && navigator.wakeLock.request("screen").then(l => wakeLock = l).catch(() => {}); } catch (e) {}
@@ -921,11 +1008,11 @@ function renderWorkout() {
   w.innerHTML = `${head}<svg class="stage fig" id="wkFig" viewBox="0 0 240 200"></svg>
     <div class="wk-name"></div>
     <div class="wk-sets">${setBars}</div>
-    <div class="wk-reps"><b>${ex.reps}</b><span>${/^\d+(–\d+)?$/.test(ex.reps) ? "reps · " : ""}set ${wk.set} of ${ex.sets}</span></div>
+    <div class="wk-reps"><b>${ex.reps}</b><span>${ex.warmup ? "warm-up · no rest after" : `${/^\d+(–\d+)?$/.test(ex.reps) ? "reps · " : ""}set ${wk.set} of ${ex.sets}`}</span></div>
     <p class="cue"></p>
     <div class="wk-row">
       <button class="start" type="button" data-act="done">Set done</button>
-      ${ex.sets < 4 ? `<button class="ghost" type="button" data-act="extra">+1 set</button>` : ""}
+      ${ex.sets < 4 && !ex.warmup ? `<button class="ghost" type="button" data-act="extra">+1 set</button>` : ""}
     </div>`;
   w.querySelector(".wk-name").textContent = ex.name;
   w.querySelector(".cue").textContent = ex.tip;
@@ -946,6 +1033,7 @@ $("wkWrap").addEventListener("click", e => {
     wk.set++;
     if (wk.set > ex.sets) { done[ex.id] = true; save(); }
     if (wk.set > ex.sets && wk.i === wk.queue.length - 1) { wk.i++; return renderWorkout(); }
+    if (!ex.rest) return afterRest();
     wk.resting = true; wk.left = ex.rest; wk.restLabel = ex.restLabel; renderWorkout();
   }
   if (act === "skip") afterRest();
