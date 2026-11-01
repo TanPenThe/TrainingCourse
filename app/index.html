@@ -366,20 +366,13 @@ const EX = {
           { h: [120, 113], s: [120, 61], a: [134, 68], f: [120, 180] }],
       steps: ["Stand tall with dumbbells at your sides, palms facing your thighs.", "Keep your palms facing in and curl the weights up, elbows pinned to your sides.", "Lower slowly to the start."],
       tip: "The thumbs-up grip shifts the work onto the forearm and the brachialis, the muscle under your biceps.", mistake: "Rotating your palms up as you lift. Keep them facing each other." },
-    { id: "wristcurl", finisher: true, name: "Wrist Curl", muscles: "Forearm flexors · Grip", equip: "Dumbbells, bench",
-      sets: 3, setsLabel: "3", reps: "15–20", rest: 50, restLabel: "Rest 45–60 s",
-      hi: ["forearm"], dur: 1800, db: true, props: [["bench", 70, 140, 50, 40]],
-      k: [{ h: [100, 134], s: [126, 92], a: [140, 124], g: [148, 134], f: [140, 180] },
-          { h: [100, 134], s: [126, 92], a: [140, 124], g: [149, 113], f: [140, 180] }],
-      steps: ["Sit on a bench and rest your forearms on your thighs, palms up, wrists just past your knees.", "Let the dumbbells roll down toward your fingertips.", "Curl your wrists up as high as you can, squeeze, then lower slowly."],
-      tip: "Only your wrists move. Your forearms stay glued to your thighs.", mistake: "Going too heavy and jerking the weight. Use a light dumbbell and high reps." },
-    { id: "carry", finisher: true, name: "Farmer's Carry", muscles: "Grip · Traps · Core", equip: "Heavy dumbbells",
-      sets: 3, setsLabel: "3", reps: "40 m", rest: 50, restLabel: "Rest 45–60 s",
-      hi: ["forearm"], dur: 1100, db: true, dbEnd: true, props: [],
-      k: [{ h: [120, 115], s: [121, 63], a: [123, 116], a2: [119, 116], f: [138, 180], f2: [104, 180] },
-          { h: [120, 115], s: [121, 63], a: [123, 116], a2: [119, 116], f: [104, 180], f2: [138, 180] }],
-      steps: ["Pick up a heavy dumbbell in each hand and stand tall.", "Walk with short, steady steps, shoulders back and core tight.", "Go about 40 metres, or 30–45 seconds, then set the weights down with control."],
-      tip: "Squeeze the handles as hard as you can the whole way.", mistake: "Leaning to one side or letting your shoulders round forward." }
+    { id: "deadhang", finisher: true, name: "Dead Hang", muscles: "Grip · Forearms · Shoulders", equip: "Pull-up bar",
+      sets: 3, setsLabel: "3", reps: "20–45 sec", rest: 50, restLabel: "Rest 45–60 s",
+      hi: ["forearm"], dur: 3200, noFloor: true, props: [["bar", 70, 14, 170]],
+      k: [{ h: [120, 119], s: [122, 67], a: [124, 14], f: [118, 186] },
+          { h: [120, 115], s: [122, 63], a: [124, 14], f: [118, 182] }],
+      steps: ["Grab a pull-up bar with an overhand grip, hands shoulder-width apart.", "Lift your feet and hang with straight arms. Keep your shoulders gently pulled down, not shrugged up to your ears.", "Breathe steadily and hold, then step down with control."],
+      tip: "At 100 kg this is real grip work. Start with 15–20 seconds and add 5 seconds each week. Keep your toes on a box if you need help.", mistake: "Letting your shoulders go completely loose. Keep a little tension so the joint is supported." }
   ],
   legs: [
     { id: "deadlift", name: "Deadlift", muscles: "Glutes · Hamstrings · Back", equip: "Barbell",
@@ -412,12 +405,12 @@ const EX = {
           { h: [126, 88], s: [126, 36], a: [129, 89], f: [126, 156], t: [138, 167] }],
       steps: ["Hold dumbbells at your sides with the balls of your feet on a step, heels hanging off.", "Raise your heels as high as you can.", "Lower them slowly below the step for a full stretch."],
       tip: "Pause for a second at the top of every rep.", mistake: "Bouncing at the bottom." },
-    { id: "hlr", name: "Hanging Leg Raise", muscles: "Abs · Hip flexors", equip: "Pull-up bar",
-      hi: ["leg", "torso"], dur: 2800, noFloor: true, props: [["bar", 70, 14, 170]],
-      k: [{ h: [120, 119], s: [122, 67], a: [124, 14], f: [118, 186] },
-          { h: [122, 118], s: [122, 67], a: [124, 14], f: [152, 138] }],
-      steps: ["Hang from a bar with an overhand grip.", "Bend at the hips and knees and bring your knees up toward your chest.", "Lower your legs slowly. For more challenge, keep your legs straight."],
-      tip: "Tilt your pelvis up at the top so your abs do the work, not just your hips.", mistake: "Swinging. Pause at the bottom of each rep." }
+    { id: "cablecrunch", name: "Cable Crunch", muscles: "Abs", equip: "Cable machine, rope",
+      hi: ["torso"], dur: 2600, cable: [196, 12], props: [["col", 204, 6, 180]],
+      k: [{ h: [110, 144], s: [114, 92], a: [126, 80], f: [76, 178] },
+          { h: [110, 144], s: [146, 146], a: [156, 140], f: [76, 178] }],
+      steps: ["Kneel facing a high pulley and hold the rope beside your head.", "Keep your hips still and crunch down, bringing your elbows toward your knees.", "Squeeze your abs at the bottom, then rise slowly."],
+      tip: "Round your back as you crunch. The movement comes from your abs, not your hips.", mistake: "Sitting back onto your heels and pulling with your arms." }
   ]
 };
 for (const c in EX) EX[c] = EX[c].map(e => Object.assign({}, STD, e));
