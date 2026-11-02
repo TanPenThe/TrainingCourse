@@ -257,8 +257,8 @@ ol.steps li::before { content: counter(s); font-family: var(--display); font-wei
     <div class="plan-head">
       <span class="eyebrow">Your week</span>
       <div class="seg" role="group" aria-label="Experience level">
-        <button type="button" id="lvl-beg" data-lvl="beg" aria-pressed="true">Beginner</button>
-        <button type="button" id="lvl-adv" data-lvl="adv" aria-pressed="false">Advanced</button>
+        <button type="button" id="lvl-beg" data-lvl="beg" aria-pressed="true">3 days / week</button>
+        <button type="button" id="lvl-adv" data-lvl="adv" aria-pressed="false">6 days / week</button>
       </div>
     </div>
     <div class="days" id="days"></div>
@@ -738,6 +738,7 @@ function addCooldowns(prog, lib, tag) {
 addCooldowns("ppl", EX, "m"); addCooldowns("women", W, "w"); addCooldowns("women", WH, "wh");
 
 // ---------- Advanced Men's week: two shorter sessions (A and B) per day, with different exercises ----------
+const POOL_SRC = id => [...Object.values(EX).flat(), ...Object.values(W).flat()].find(e => e.id === id);
 const EXTRA = [
   { id: "dbbench", name: "Dumbbell Bench Press", muscles: "Chest · Triceps · Front delts", equip: "Dumbbells, flat bench",
     hi: ["arm"], dur: 2600, db: true, kn: 1, props: [["bench", 58, 130, 120, 50]],
@@ -750,28 +751,51 @@ const EXTRA = [
     k: [{ h: [114, 113], s: [124, 63], a: [166, 31], f: [116, 180] },
         { h: [114, 113], s: [124, 63], a: [130, 114], f: [116, 180] }],
     steps: ["Stand facing a high pulley, lean forward slightly, and hold the bar with straight arms at eye level.", "Keep your arms straight and sweep the bar down in an arc to your thighs.", "Squeeze your lats at the bottom, then let the bar rise slowly."],
-    tip: "Only your shoulders move. This isolates the lats without tiring your biceps or grip.", mistake: "Bending the elbows and turning it into a triceps pushdown." }
+    tip: "Only your shoulders move. This isolates the lats without tiring your biceps or grip.", mistake: "Bending the elbows and turning it into a triceps pushdown." },
+  { id: "legpress", name: "Leg Press", muscles: "Quads · Glutes", equip: "Leg press machine",
+    hi: ["leg"], dur: 2800, sled: true, props: [["pad", 63, 156, 37, 108, 9], ["pad", 62, 160, 88, 160, 8], ["col", 74, 164, 180], ["rail", 96, 152, 172, 76]],
+    k: [{ h: [70, 150], s: [44, 104], a: [80, 146], f: [100, 128] },
+        { h: [70, 150], s: [44, 104], a: [80, 146], f: [116, 104] }],
+    steps: ["Sit in the machine with your back flat on the pad and feet shoulder-width on the platform.", "Release the safety handles and lower the platform until your knees are bent to about 90°.", "Press through your whole foot to push it back up, stopping just before your knees lock."],
+    tip: "Feet higher on the platform works the glutes more, lower works the quads more.", mistake: "Lowering so far that your lower back lifts off the pad." }
 ].map(e => Object.assign({}, STD, e));
+EXTRA.push(
+  Object.assign({}, POOL_SRC("w-rdl"), STD, { id: "rdl", equip: "Barbell or dumbbells",
+    tip: "Think of shutting a car door with your backside. It trains hamstrings and glutes hard with much less strain on the lower back than a full deadlift." }),
+  Object.assign({}, POOL_SRC("pulldown"), { id: "cgpulldown", name: "Close-Grip Pulldown", muscles: "Lats · Mid back · Biceps", equip: "Lat pulldown machine, close-grip handle",
+    k: [{ h: [110, 146], s: [106, 94], a: [112, 41], f: [144, 180] },
+        { h: [110, 146], s: [104, 94], a: [120, 92], f: [144, 180] }],
+    steps: ["Attach a close-grip (V) handle and sit with your thighs under the pads.", "Pull the handle down to your upper chest, driving your elbows down beside your ribs.", "Straighten your arms slowly to return, letting your lats stretch at the top."],
+    tip: "A neutral, close grip lets you pull through a longer range. It pairs with the wide-grip pulldown on Pull A.", mistake: "Leaning far back and turning it into a row." })
+);
 const POOL = Object.fromEntries([...Object.values(EX).flat(), ...EXTRA, ...Object.values(W).flat()].map(e => [e.id, e]));
+// A sessions are heavy (6–10 reps on the main lifts), B sessions are lighter with more reps (10–15).
 const SESSIONS = {
-  push: { A: ["seatpress", "inclinepress", "skull", "lateral"], B: ["dbbench", "fly", "pushdown", "lateral"] },
-  // No Dead Hang in Pull B: the next day is Legs B with Deadlifts, which need a fresh grip.
-  pull: { A: ["bbrow", "pulldown", "facepull", "curl", "deadhang"], B: ["cablerow", "straightarm", "facepull", "hammer"] },
-  legs: { A: ["squat", "legcurl", "calf", "cablecrunch"], B: ["deadlift", "lunge", "calf", "w-plank"] }
+  push: { A: ["dbbench", "seatpress", "skull", "lateral"], B: ["inclinepress", "fly", "pushdown", "lateral"] },
+  // No Dead Hang in Pull B: the next day is Legs B with Romanian Deadlifts, which need a fresh grip.
+  pull: { A: ["bbrow", "pulldown", "facepull", "curl", "deadhang"], B: ["cablerow", "cgpulldown", "facepull", "hammer"] },
+  legs: { A: ["squat", "legcurl", "calf", "cablecrunch"], B: ["rdl", "legpress", "calf", "w-plank"] }
 };
 // Beginner week: each day once a week, trimmed to the most important lifts so it stays near 45 minutes.
 const BEGINNER = {
   push: ["inclinepress", "seatpress", "fly", "pushdown", "lateral"],
   pull: ["bbrow", "pulldown", "facepull", "hammer", "deadhang"],
-  legs: ["deadlift", "squat", "legcurl", "calf", "cablecrunch"]
+  legs: ["squat", "deadlift", "legcurl", "calf", "cablecrunch"]   // squat first, while your legs are fresh
 };
 // Smaller isolation lifts recover faster, so they rest 60–90 s instead of 2–3 min.
-for (const id of ["lateral", "fly", "pushdown", "skull", "curl", "hammer", "legcurl", "calf", "cablecrunch", "straightarm"])
-  Object.assign(POOL[id], { rest: 75, restLabel: "Rest 60–90 s" });
+const ISO = ["lateral", "fly", "pushdown", "skull", "curl", "hammer", "legcurl", "calf", "cablecrunch", "straightarm"];
+for (const id of ISO) Object.assign(POOL[id], { rest: 75, restLabel: "Rest 60–90 s" });
+// Rep targets per session: A heavy, B lighter. Timed moves and the Face Pull keep their own targets.
+function sessionReps(v, id) {
+  const e = POOL[id]; if (/sec/.test(e.reps) || id === "facepull") return e.reps;
+  if (v === "A") return ISO.includes(id) ? "10–12" : "6–10";
+  if (id === "rdl") return "8–12";   // long sets of a heavy hinge tire the lower back before the hamstrings
+  return id === "lateral" ? "12–15" : "10–15";
+}
 // Hammer Curl is the main arm exercise in Pull B, so it moves out of the finisher there.
-const sessionItem = (day, v, id) =>
-  (day === "pull" && v === "B" && id === "hammer") ? Object.assign({}, POOL[id], { finisher: false, sets: 3, setsLabel: "3–4", rest: 75, restLabel: "Rest 60–90 s" }) :
-  id === "w-plank" ? Object.assign({}, POOL[id], { rest: 60, restLabel: "Rest 60 s" }) : POOL[id];
+const sessionItem = (day, v, id) => Object.assign({}, POOL[id], { reps: sessionReps(v, id) },
+  (day === "pull" && v === "B" && id === "hammer") ? { finisher: false, sets: 3, setsLabel: "3–4" } :
+  id === "w-plank" ? { rest: 60, restLabel: "Rest 60 s" } : {});
 let variant = "A";
 const hasSessions = () => prog === "ppl" && level === "adv";
 function dayEx(c) {
@@ -797,8 +821,8 @@ const PROGRAMS = {
     source: 'Exercises, sets and schedule follow <a href="https://www.healthline.com/nutrition/push-pull-workout" target="_blank" rel="noopener">Healthline\'s push-pull workout guide</a>.',
     tip: "Pick a weight where reps 9 and 10 feel hard but your form still holds. If you can do more than 12 with good form, go heavier.",
     plans: {
-      beg: { days: ["push", "rest", "pull", "rest", "legs"], note: "Under 6 months of training: up to 3 workouts a week, with a rest day between each." },
-      adv: { days: ["push:A", "pull:A", "legs:A", "rest", "push:B", "pull:B", "legs:B"], note: "Each body part twice a week, with different exercises in sessions A and B so every workout stays short. For 6+ months of training." }
+      beg: { days: ["push", "rest", "pull", "rest", "legs"], note: "One of each day per week, with a rest day between. Good for busy weeks or when you're new to lifting." },
+      adv: { days: ["push:A", "pull:A", "legs:A", "rest", "push:B", "pull:B", "legs:B"], note: "Each body part twice a week. A days are heavy (6–10 reps), B days are lighter with more reps (10–15) and different exercises." }
     }
   },
   women: {
@@ -847,6 +871,7 @@ function buildFig(svg, ex) {
     if (p[0] === "pad") mk("line", { class: "pad", x1: p[1], y1: p[2], x2: p[3], y2: p[4], "stroke-width": p[5] + 2 }, g);
     if (p[0] === "rect") mk("rect", { class: "propfill", x: p[1], y: p[2], width: p[3], height: p[4], rx: 8, "stroke-width": 2 }, g);
     if (p[0] === "step") mk("rect", { class: "propfill", x: p[1], y: p[2], width: p[3], height: p[4], rx: 2, "stroke-width": 2 }, g);
+    if (p[0] === "rail") mk("line", { class: "prop", x1: p[1], y1: p[2], x2: p[3], y2: p[4], "stroke-width": 4 }, g);
     if (p[0] === "roll") mk("circle", { class: "propfill", cx: p[1], cy: p[2], r: p[3], "stroke-width": 2 }, g);
     if (p[0] === "col") { mk("line", { class: "prop", x1: p[1], y1: p[2], x2: p[1], y2: p[3], "stroke-width": 6 }, g);
       mk("line", { class: "prop", x1: p[1], y1: p[2] + 6, x2: p[1] - 10, y2: p[2] + 12, "stroke-width": 4 }, g); }
@@ -858,6 +883,7 @@ function buildFig(svg, ex) {
   if (ex.plate) P.plate = mk("circle", { class: "propfill", r: 14, "stroke-width": 2.5 }, g);
   if (ex.roller) P.roller = mk("circle", { class: "propfill", r: 7, "stroke-width": 2 }, g);
   if (ex.towel) P.towel = mk("line", { class: "prop", "stroke-width": 4 }, g);
+  if (ex.sled) P.sled = mk("line", { class: "prop", "stroke-width": 6 }, g);
   const far = mk("g", { class: "far" }, g), near = mk("g", {}, g);
   const isHi = part => ex.hi.includes(part) || (part !== "torso" && ex.hi.includes(part.replace(/\d/, "")));
   const bone = (parent, part) => mk("polyline", { class: "bone" + (isHi(part) ? " hi" : "") }, parent);
@@ -917,6 +943,7 @@ function drawFig(svg, t) {
   if (P.cable) { const end = ex.cableTo === "f" ? f1 : h1; P.cable.setAttribute("x1", ex.cable[0]); P.cable.setAttribute("y1", ex.cable[1]); P.cable.setAttribute("x2", end[0]); P.cable.setAttribute("y2", end[1]); }
   if (P.plate) { const c = ex.plate === "s" ? [p.s[0] - 3, p.s[1] - 2] : ex.plate === "h" ? [p.h[0] + 4, p.h[1] - 10] : h1; P.plate.setAttribute("cx", c[0]); P.plate.setAttribute("cy", c[1]); }
   if (P.roller) { P.roller.setAttribute("cx", f1[0] + 2); P.roller.setAttribute("cy", f1[1] + 4); }
+  if (P.sled) { const c = [f1[0] + 5, f1[1] - 5]; P.sled.setAttribute("x1", c[0] - 13); P.sled.setAttribute("y1", c[1] - 13); P.sled.setAttribute("x2", c[0] + 13); P.sled.setAttribute("y2", c[1] + 13); }
   if (P.towel) { P.towel.setAttribute("x1", f1[0] - 9); P.towel.setAttribute("x2", f1[0] + 9); P.towel.setAttribute("y1", 181); P.towel.setAttribute("y2", 181); }
   if (P.band) { const from = ex.bandTo === "f" ? [f1[0] + 4, f1[1]] : h2; P.band.setAttribute("x1", h1[0]); P.band.setAttribute("y1", h1[1]); P.band.setAttribute("x2", from[0]); P.band.setAttribute("y2", from[1]); }
 }
@@ -1039,7 +1066,7 @@ function renderList() {
     if (sec !== prevSec && (sec !== "main" || prevSec === "warm")) {
       const dv = document.createElement("div"); dv.className = "divider";
       const head = { warm: ["Warm-up", `About ${warmMins} min · no rest between moves`],
-                     main: ["Workout", (P_().mainRest || P_().restLabel + " between sets").replace("Rest ", "rest ")],
+                     main: [hasSessions() && SESSIONS[cat] ? (variant === "A" ? "Heavy workout · 6–10 reps" : "Lighter workout · 10–15 reps") : "Workout", (P_().mainRest || P_().restLabel + " between sets").replace("Rest ", "rest ")],
                      fin: ["Forearm finisher", `Do these last · ${(ex.restLabel || "").replace("Rest ", "rest ")}`],
                      cool: ["Cool-down", `About ${coolMins} min · hold each stretch and breathe slowly`] }[sec];
       dv.innerHTML = `<b>${head[0]}</b><span>${head[1]}</span>`;
