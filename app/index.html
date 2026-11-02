@@ -216,7 +216,7 @@ ol.steps li::before { content: counter(s); font-family: var(--display); font-wei
 <div class="app">
   <header class="top">
     <div class="eyebrow" id="today">Today</div>
-    <h1><span id="catTitle">Push</span> Day</h1>
+    <h1><span id="catTitle">Push</span> Day<span id="dayVar"></span></h1>
     <div class="summary">
       <span><b id="doneCount">0</b> of <b id="totalCount">6</b> done</span>
       <div class="progress" aria-hidden="true"><i id="progBar"></i></div>
@@ -583,7 +583,7 @@ for (const c in WH) WH[c] = WH[c].map(e => Object.assign({}, HSTD, e));
 
 // ---------- Warm-ups: about 5–6 minutes of easy movement before each day's workout ----------
 // Done once each, straight through with no rest. Ids are per day so ticking one off doesn't tick the others.
-const WU = { sets: 1, setsLabel: "1", rest: 0, restLabel: "No rest, go straight to the next move", warmup: true };
+const WU = { sets: 1, setsLabel: "1", rest: 0, restLabel: "No rest, go straight to the next move", warmup: true, light: true };
 const WARM = {
   jog: { name: "Jog in Place", muscles: "Heart rate · Whole body", equip: "None", reps: "2 min",
     hi: ["leg"], dur: 700, props: [],
@@ -656,6 +656,99 @@ function addWarmups(prog, lib, tag) {
 }
 addWarmups("ppl", EX, "m"); addWarmups("women", W, "w"); addWarmups("women", WH, "wh");
 
+// ---------- Cool-downs: 3–4 minutes of easy stretches at the end of each day ----------
+const CD = { sets: 1, setsLabel: "1", rest: 0, restLabel: "No rest, go straight to the next stretch", cooldown: true, light: true, dur: 4000 };
+const COOL = {
+  childpose: { name: "Child's Pose", muscles: "Lats · Lower back · Hips", equip: "None", reps: "45 sec",
+    hi: ["torso"], props: [],
+    k: [{ h: [92, 154], s: [140, 168], a: [190, 176], f: [84, 178], hc: [156, 172] },
+        { h: [92, 153], s: [141, 165], a: [190, 176], f: [84, 178], hc: [157, 170] }],
+    steps: ["Kneel, sit back on your heels, and walk your hands forward until your forehead rests on the floor.", "Reach your arms long in front of you and let your chest sink.", "Breathe slowly into your back."],
+    tip: "Walk both hands to one side for 15 seconds, then the other, to stretch each lat more.", mistake: "Holding your breath. Long, slow breaths help you relax into it." },
+  crossbody: { name: "Cross-Body Shoulder Stretch", muscles: "Rear shoulders · Upper back", equip: "None", reps: "30 sec each side", front: true,
+    hi: ["arm"], props: [],
+    k: [{ h: [120, 113], s: [120, 62], a: [152, 72], a2: [130, 80], f: [112, 180], f2: [128, 180] },
+        { h: [120, 113], s: [120, 62], a: [154, 70], a2: [131, 79], f: [112, 180], f2: [128, 180] }],
+    steps: ["Bring one straight arm across your chest.", "Hold it just above the elbow with your other hand and pull it gently closer.", "Keep your shoulder down and hold, then switch sides."],
+    tip: "Turn your head away from the arm for a little more stretch.", mistake: "Pulling on the elbow joint itself. Hold the upper arm." },
+  forearm: { name: "Forearm Stretch", muscles: "Forearms · Wrists", equip: "None", reps: "20 sec each way",
+    hi: ["forearm"], props: [],
+    k: [{ h: [120, 113], s: [121, 61], a: [174, 66], a2: [176, 54], g: [178, 52], f: [120, 180] },
+        { h: [120, 113], s: [121, 61], a: [174, 66], a2: [178, 52], g: [180, 50], f: [120, 180] }],
+    steps: ["Hold one arm straight out in front, palm facing away.", "With your other hand, gently pull your fingers back toward you. Hold 20 seconds.", "Then turn the palm down and press the back of the hand toward you. Switch arms."],
+    tip: "Especially good after the Hammer Curls and Dead Hangs.", mistake: "Bending the elbow. Keep the arm straight to stretch the full forearm." },
+  chestdoor: { name: "Doorway Chest Stretch", muscles: "Chest · Front shoulders", equip: "Doorway or wall", reps: "30 sec each side",
+    hi: ["arm", "torso"], props: [["col", 68, 30, 180]],
+    k: [{ h: [124, 113], s: [128, 61], a: [72, 60], f: [128, 180] },
+        { h: [126, 113], s: [131, 61], a: [72, 60], f: [130, 180] }],
+    steps: ["Stand side-on in a doorway and place your forearm and palm on the frame, elbow at shoulder height.", "Step forward gently until you feel a stretch across your chest.", "Hold, breathe, then switch sides."],
+    tip: "After a heavy Push day, this helps undo the rounded-shoulder pull of pressing.", mistake: "Pushing into pain at the front of the shoulder. Ease off to a gentle stretch." },
+  quad: { name: "Standing Quad Stretch", muscles: "Quads · Hip flexors", equip: "A wall for balance", reps: "30 sec each leg",
+    hi: ["leg"], props: [["col", 172, 40, 180]],
+    k: [{ h: [120, 113], s: [122, 61], a: [100, 112], a2: [166, 80], f: [96, 120], f2: [120, 180] },
+        { h: [120, 113], s: [122, 61], a: [100, 110], a2: [166, 80], f: [97, 117], f2: [120, 180] }],
+    steps: ["Stand tall holding a wall with one hand.", "Bend one knee and hold that ankle behind you.", "Keep your knees together and push your hips forward gently. Hold, then switch."],
+    tip: "Squeeze the glute of the bent leg to stretch the front of the hip too.", mistake: "Arching your back or letting the knee drift out to the side." },
+  hamstring: { name: "Seated Hamstring Stretch", muscles: "Hamstrings · Lower back", equip: "None", reps: "45 sec",
+    hi: ["leg"], props: [],
+    k: [{ h: [90, 174], s: [128, 142], a: [154, 168], f: [158, 176] },
+        { h: [90, 174], s: [132, 139], a: [156, 167], f: [158, 176] }],
+    steps: ["Sit on the floor with your legs straight in front of you.", "Sit tall, then hinge forward from your hips and reach toward your toes.", "Stop at a gentle stretch behind your knees and breathe."],
+    tip: "Reaching your shins is fine. A long back matters more than touching your toes.", mistake: "Rounding hard through the upper back to reach further." },
+  hipflexor: { name: "Kneeling Hip Flexor Stretch", muscles: "Hip flexors · Quads", equip: "None (a cushion under the knee)", reps: "30 sec each side",
+    hi: ["leg"], props: [],
+    k: [{ h: [112, 146], s: [114, 94], a: [140, 140], f: [150, 180], f2: [60, 178] },
+        { h: [118, 148], s: [120, 96], a: [144, 140], f: [150, 180], f2: [60, 178] }],
+    steps: ["Kneel on one knee with the other foot flat in front, both knees at about 90°.", "Tuck your tailbone under and shift your hips forward gently.", "Hold, then switch sides."],
+    tip: "This undoes the tight hips from squats, lunges and sitting all day.", mistake: "Leaning back and arching the lower back. Stay tall." }
+};
+const DAY_COOLDOWNS = {
+  ppl: { push: ["chestdoor", "crossbody", "childpose"],
+         pull: ["childpose", "crossbody", "forearm"],
+         legs: ["quad", "hamstring", "hipflexor", "childpose"] },
+  women: { glutes: ["hipflexor", "hamstring", "childpose"],
+           upper: ["chestdoor", "crossbody", "childpose"],
+           quads: ["quad", "hipflexor", "hamstring"] }
+};
+function addCooldowns(prog, lib, tag) {
+  for (const [day, keys] of Object.entries(DAY_COOLDOWNS[prog]))
+    lib[day].push(...keys.map(k => Object.assign({}, CD, COOL[k], { id: `cd-${tag}-${day}-${k}` })));
+}
+addCooldowns("ppl", EX, "m"); addCooldowns("women", W, "w"); addCooldowns("women", WH, "wh");
+
+// ---------- Advanced Men's week: two shorter sessions (A and B) per day, with different exercises ----------
+const EXTRA = [
+  { id: "dbbench", name: "Dumbbell Bench Press", muscles: "Chest · Triceps · Front delts", equip: "Dumbbells, flat bench",
+    hi: ["arm"], dur: 2600, db: true, kn: 1, props: [["bench", 58, 130, 120, 50]],
+    k: [{ h: [100, 124], s: [152, 124], a: [160, 112], f: [64, 180] },
+        { h: [100, 124], s: [152, 124], a: [154, 72], f: [64, 180] }],
+    steps: ["Lie on a flat bench with a dumbbell in each hand beside your chest, feet planted.", "Press the weights up until your arms are straight over your chest.", "Lower slowly until the dumbbells are level with your chest, elbows about 45° from your body."],
+    tip: "Pinch your shoulder blades together and keep them there for the whole set.", mistake: "Flaring your elbows straight out to the sides. It strains the shoulders." },
+  { id: "straightarm", name: "Straight-Arm Pulldown", muscles: "Lats", equip: "Cable machine, bar or rope",
+    hi: ["arm", "torso"], dur: 2400, cable: [190, 12], props: [["col", 198, 6, 180]],
+    k: [{ h: [114, 113], s: [124, 63], a: [166, 31], f: [116, 180] },
+        { h: [114, 113], s: [124, 63], a: [130, 114], f: [116, 180] }],
+    steps: ["Stand facing a high pulley, lean forward slightly, and hold the bar with straight arms at eye level.", "Keep your arms straight and sweep the bar down in an arc to your thighs.", "Squeeze your lats at the bottom, then let the bar rise slowly."],
+    tip: "Only your shoulders move. This isolates the lats without tiring your biceps or grip.", mistake: "Bending the elbows and turning it into a triceps pushdown." }
+].map(e => Object.assign({}, STD, e));
+const POOL = Object.fromEntries([...Object.values(EX).flat(), ...EXTRA, ...Object.values(W).flat()].map(e => [e.id, e]));
+const SESSIONS = {
+  push: { A: ["seatpress", "inclinepress", "skull", "lateral"], B: ["dbbench", "fly", "pushdown", "lateral"] },
+  pull: { A: ["bbrow", "pulldown", "facepull", "curl", "deadhang"], B: ["cablerow", "straightarm", "facepull", "hammer", "deadhang"] },
+  legs: { A: ["squat", "legcurl", "calf", "cablecrunch"], B: ["deadlift", "lunge", "calf", "w-plank"] }
+};
+// Hammer Curl is the main arm exercise in Pull B, so it moves out of the finisher there.
+const sessionItem = (day, v, id) =>
+  (day === "pull" && v === "B" && id === "hammer") ? Object.assign({}, POOL[id], { finisher: false, sets: 3, setsLabel: "3–4", rest: 120, restLabel: null }) :
+  id === "w-plank" ? Object.assign({}, POOL[id], { rest: 60, restLabel: "Rest 60 s" }) : POOL[id];
+let variant = "A";
+const hasSessions = () => prog === "ppl" && level === "adv";
+function dayEx(c) {
+  const base = P_().ex[c];
+  if (!hasSessions() || !SESSIONS[c]) return base;
+  return [...base.filter(e => e.warmup), ...SESSIONS[c][variant].map(id => sessionItem(c, variant, id)), ...base.filter(e => e.cooldown)];
+}
+
 const ICONS = {
   push: '<path d="M4 14h16M7 14l2-5h6l2 5M12 9V4"/><path d="M9 6l3-3 3 3"/>',
   pull: '<path d="M3 4h18M8 4v5a4 4 0 0 0 8 0V4"/><path d="M12 13v8M9 18l3 3 3-3"/>',
@@ -673,7 +766,7 @@ const PROGRAMS = {
     tip: "Pick a weight where reps 9 and 10 feel hard but your form still holds. If you can do more than 12 with good form, go heavier.",
     plans: {
       beg: { days: ["push", "rest", "pull", "rest", "legs"], note: "Under 6 months of training: up to 3 workouts a week, with a rest day between each." },
-      adv: { days: ["push", "pull", "legs", "rest", "push", "pull", "legs"], note: "Over 2 years of training: up to 6 workouts a week with one rest day. Intermediate (6 months–2 years): 3–4 days." }
+      adv: { days: ["push:A", "pull:A", "legs:A", "rest", "push:B", "pull:B", "legs:B"], note: "Each body part twice a week, with different exercises in sessions A and B so every workout stays short. For 6+ months of training." }
     }
   },
   women: {
@@ -828,20 +921,21 @@ function renderPlan() {
   $("source").innerHTML = P_().source;
   const days = $("days"); days.innerHTML = "";
   let marked = false;
-  P_().plans[level].days.forEach((c, i) => {
+  P_().plans[level].days.forEach((spec, i) => {
+    const [c, v] = spec.split(":");
     const b = document.createElement("button"); b.type = "button";
-    const isCur = c === cat && !marked; if (isCur) marked = true;
+    const isCur = c === cat && (!v || v === variant) && !marked; if (isCur) marked = true;
     b.className = "day" + (c === "rest" ? " rest" : "") + (isCur ? " cur" : "");
     if (c !== "rest") b.dataset.slot = slot(c);
-    b.innerHTML = `Day ${i + 1}<b>${c === "rest" ? "Rest" : P_().cats[c].short}</b>`;
+    b.innerHTML = `Day ${i + 1}<b>${c === "rest" ? "Rest" : P_().cats[c].short + (v ? " " + v : "")}</b>`;
     if (c === "rest") { b.disabled = true; b.setAttribute("aria-label", `Day ${i + 1}: rest`); }
-    else b.addEventListener("click", () => setCat(c));
+    else b.addEventListener("click", () => { if (v) variant = v; setCat(c); });
     days.appendChild(b);
   });
   $("planNote").textContent = P_().plans[level].note;
 }
 document.querySelectorAll("[data-lvl]").forEach(b => b.addEventListener("click", () => {
-  level = b.dataset.lvl; try { localStorage.setItem("ppa-lvl", level); } catch (e) {} renderPlan();
+  level = b.dataset.lvl; try { localStorage.setItem("ppa-lvl", level); } catch (e) {} renderList();
 }));
 document.querySelectorAll("[data-prog]").forEach(b => b.addEventListener("click", () => {
   if (prog === b.dataset.prog) return;
@@ -867,17 +961,19 @@ function renderTabs() {
 function renderList() {
   document.body.dataset.slot = slot(cat);
   $("catTitle").textContent = label(cat);
+  $("dayVar").textContent = hasSessions() && SESSIONS[cat] ? " " + variant : "";
   renderTabs();
   const list = $("list"); list.innerHTML = "";
   let prevSec = null;
-  const dayList = P_().ex[cat], warmMins = Math.round(dayList.filter(e => e.warmup).length * 1.3 + 1);
+  const dayList = dayEx(cat), warmMins = Math.round(dayList.filter(e => e.warmup).length * 1.3 + 1), coolMins = Math.max(2, Math.round(dayList.filter(e => e.cooldown).length));
   for (const ex of dayList) {
-    const sec = ex.warmup ? "warm" : ex.finisher ? "fin" : "main";
+    const sec = ex.warmup ? "warm" : ex.cooldown ? "cool" : ex.finisher ? "fin" : "main";
     if (sec !== prevSec && (sec !== "main" || prevSec === "warm")) {
       const dv = document.createElement("div"); dv.className = "divider";
       const head = { warm: ["Warm-up", `About ${warmMins} min · no rest between moves`],
                      main: ["Workout", P_().restLabel.replace("Rest ", "rest ") + " between sets"],
-                     fin: ["Forearm finisher", `Do these last · ${(ex.restLabel || "").replace("Rest ", "rest ")}`] }[sec];
+                     fin: ["Forearm finisher", `Do these last · ${(ex.restLabel || "").replace("Rest ", "rest ")}`],
+                     cool: ["Cool-down", `About ${coolMins} min · hold each stretch and breathe slowly`] }[sec];
       dv.innerHTML = `<b>${head[0]}</b><span>${head[1]}</span>`;
       list.appendChild(dv);
     }
@@ -889,7 +985,7 @@ function renderList() {
       <button type="button" class="check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg></button>`;
     b.querySelector("h3").textContent = ex.name;
     b.querySelector(".muscles").textContent = ex.muscles;
-    b.querySelector(".dose").innerHTML = ex.warmup ? ex.reps : `${ex.setsLabel} × ${ex.reps}`;
+    b.querySelector(".dose").innerHTML = ex.light ? ex.reps : `${ex.setsLabel} × ${ex.reps}`;
     const sm = document.createElement("small"); sm.textContent = ex.equip; b.querySelector(".dose").appendChild(sm);
     const open = b.querySelector(".card-open"), chk = b.querySelector(".check"); chk.dataset.id = ex.id;
     open.setAttribute("aria-label", `${ex.name}, ${ex.setsLabel} sets of ${ex.reps}. Show how to do it`);
@@ -899,10 +995,10 @@ function renderList() {
     chk.addEventListener("click", () => askToggle(ex, chk));
     list.appendChild(b);
   }
-  const all = P_().ex[cat].filter(e => !e.warmup), n = all.filter(e => done[e.id]).length;
+  const all = dayEx(cat).filter(e => !e.light), n = all.filter(e => done[e.id]).length;
   $("doneCount").textContent = n; $("totalCount").textContent = all.length;
   $("progBar").style.width = (n / all.length * 100) + "%";
-  const mins = Math.round(P_().ex[cat].reduce((m, e) => m + (e.warmup ? 75 : e.sets * (45 + e.rest)), 0) / 60);
+  const mins = Math.round(dayEx(cat).reduce((m, e) => m + (e.light ? 60 : e.sets * (45 + e.rest)), 0) / 60);
   $("timeEst").textContent = `~${mins} min`;
   $("startBtn").textContent = n === all.length ? "Do it again" : n ? "Continue workout" : "Start workout";
   renderPlan();
@@ -931,7 +1027,7 @@ $("cYes").addEventListener("click", () => {
   save(); renderList(); closeConfirm();
 });
 function setCat(c) { cat = c; try { localStorage.setItem("ppa-cat", cat); } catch (e) {} renderList(); window.scrollTo(0, 0); }
-$("resetBtn").addEventListener("click", () => { for (const e of P_().ex[cat]) delete done[e.id]; save(); renderList(); });
+$("resetBtn").addEventListener("click", () => { for (const e of dayEx(cat)) delete done[e.id]; save(); renderList(); });
 
 // ---------- Detail sheet ----------
 let current = null;
@@ -941,7 +1037,7 @@ function openDetail(ex) {
   figure($("dFig"), ex);
   $("dName").textContent = ex.name;
   $("dChips").innerHTML = "";
-  const chips = [[ex.warmup ? `Warm-up · ${ex.reps}` : `${ex.setsLabel} sets × ${ex.reps}${/^\d+(–\d+)?$/.test(ex.reps) ? " reps" : ""}`, true], [ex.muscles, false], [ex.equip, false], [ex.restLabel || P_().restLabel, false]];
+  const chips = [[ex.light ? `${ex.cooldown ? "Cool-down" : "Warm-up"} · ${ex.reps}` : `${ex.setsLabel} sets × ${ex.reps}${/^\d+(–\d+)?$/.test(ex.reps) ? " reps" : ""}`, true], [ex.muscles, false], [ex.equip, false], [ex.restLabel || P_().restLabel, false]];
   for (const [t, hot] of chips) { const c = document.createElement("span"); c.className = "chip" + (hot ? " hot" : ""); c.textContent = t; $("dChips").appendChild(c); }
   $("dSteps").innerHTML = ""; for (const s of ex.steps) { const li = document.createElement("li"); li.textContent = s; $("dSteps").appendChild(li); }
   $("dNote").innerHTML = "";
@@ -959,7 +1055,7 @@ $("dDo").addEventListener("click", () => { closeDetail(); startWorkout([current]
 // ---------- Workout mode ----------
 let wk = null, wakeLock = null, timer = null;
 function startWorkout(list) {
-  const all = P_().ex[cat], src = list || (all.filter(e => !e.warmup).every(e => done[e.id]) ? all : all.filter(e => !done[e.id]));
+  const all = dayEx(cat), src = list || (all.filter(e => !e.light).every(e => done[e.id]) ? all : all.filter(e => !done[e.id]));
   wk = { queue: src.map(e => Object.assign({}, e)), i: 0, set: 1, resting: false, left: 0, total: 0 };
   $("workout").classList.add("open");
   try { navigator.wakeLock && navigator.wakeLock.request("screen").then(l => wakeLock = l).catch(() => {}); } catch (e) {}
@@ -1008,11 +1104,11 @@ function renderWorkout() {
   w.innerHTML = `${head}<svg class="stage fig" id="wkFig" viewBox="0 0 240 200"></svg>
     <div class="wk-name"></div>
     <div class="wk-sets">${setBars}</div>
-    <div class="wk-reps"><b>${ex.reps}</b><span>${ex.warmup ? "warm-up · no rest after" : `${/^\d+(–\d+)?$/.test(ex.reps) ? "reps · " : ""}set ${wk.set} of ${ex.sets}`}</span></div>
+    <div class="wk-reps"><b>${ex.reps}</b><span>${ex.light ? (ex.cooldown ? "cool-down · hold and breathe" : "warm-up · no rest after") : `${/^\d+(–\d+)?$/.test(ex.reps) ? "reps · " : ""}set ${wk.set} of ${ex.sets}`}</span></div>
     <p class="cue"></p>
     <div class="wk-row">
       <button class="start" type="button" data-act="done">Set done</button>
-      ${ex.sets < 4 && !ex.warmup ? `<button class="ghost" type="button" data-act="extra">+1 set</button>` : ""}
+      ${ex.sets < 4 && !ex.light ? `<button class="ghost" type="button" data-act="extra">+1 set</button>` : ""}
     </div>`;
   w.querySelector(".wk-name").textContent = ex.name;
   w.querySelector(".cue").textContent = ex.tip;
