@@ -93,6 +93,28 @@ h1 span { color: var(--accent); transition: color .3s; }
 .day.cur { background: var(--accent); color: #fff; box-shadow: none; }
 .day.cur b { color: #fff; }
 .plan p { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.status { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.upnext { background: var(--accent); color: #fff; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.upnext .eyebrow { color: rgb(255 255 255 / .85); }
+.upnext .big { font-family: var(--display); font-weight: 900; font-size: 30px; line-height: 1; text-transform: uppercase; margin-top: 2px; }
+.upnext p { margin: 4px 0 0; font-size: 13px; color: rgb(255 255 255 / .9); }
+.upnext button { flex: none; border: 0; border-radius: 12px; padding: 12px 16px; background: #fff; color: var(--accent); font-weight: 700; }
+.upnext.calm { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+.upnext.calm .eyebrow, .upnext.calm p { color: var(--muted); }
+.upnext.calm button { background: var(--accent); color: #fff; }
+.phase { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+.phase .t { font-weight: 700; font-size: 16px; margin-top: 2px; }
+.phase p { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+.phase .weeks { display: grid; grid-template-columns: repeat(9, 1fr); gap: 3px; margin-top: 10px; }
+.phase .weeks i { height: 6px; border-radius: 3px; background: var(--line); }
+.phase .weeks i.on { background: var(--accent); }
+.phase .weeks i.easy { background: transparent; border: 1px dashed var(--muted); }
+.phase .weeks i.easy.on { background: var(--muted); border-color: var(--muted); }
+.phase .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.phase .row .start { margin: 0; flex: 1 1 160px; font-size: 18px; padding: 12px; }
+.phase .row .ghost { flex: 1 1 160px; padding: 12px; }
+.phase .links { display: flex; gap: 14px; margin-top: 8px; }
+.phase-cue { margin: 8px 0 0; font-weight: 600; font-size: 14px; color: var(--accent); }
 .seg.prog { display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin-bottom: 0; }
 .seg.prog button { padding: 7px 8px; font-size: 14px; font-weight: 700; }
 .venue-row[hidden] { display: none; }
@@ -240,6 +262,11 @@ ol.steps li::before { content: counter(s); font-family: var(--display); font-wei
       <span id="timeEst">~50 min</span>
     </div>
   </header>
+
+  <section class="status" aria-label="Your training">
+    <div class="upnext" id="upNext"></div>
+    <div class="phase" id="phase"></div>
+  </section>
 
   <section class="plan" aria-label="Weekly plan">
     <div class="seg prog" role="group" aria-label="Program" id="progSeg">
@@ -798,10 +825,79 @@ const sessionItem = (day, v, id) => Object.assign({}, POOL[id], { reps: sessionR
   id === "w-plank" ? { rest: 60, restLabel: "Rest 60 s" } : {});
 let variant = "A";
 const hasSessions = () => prog === "ppl" && level === "adv";
+// ---------- Training phase: 2 ramp-up weeks, then 6 build weeks and 1 easy week, repeating ----------
+let startDay = null;
+try { startDay = localStorage.getItem("ppa-start"); } catch (e) {}
+const dayNum = d => Math.round(new Date(d + "T12:00:00Z").getTime() / 864e5);
+const dateMinus = n => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
+function phaseInfo() {
+  if (!startDay) return null;
+  const w = Math.max(1, Math.floor((dayNum(todayKey) - dayNum(startDay)) / 7) + 1);
+  if (w === 1) return { w, slot: 0, fixed: true, title: "Ramp-up · week 1 of 2", rule: "Use about 70% of your old weights. Stop every set with 3–4 reps still in the tank.", cue: "Ramp-up week 1: stop with 3–4 reps left" };
+  if (w === 2) return { w, slot: 1, fixed: true, title: "Ramp-up · week 2 of 2", rule: "Add a little weight. Stop every set with 2–3 reps left.", cue: "Ramp-up week 2: stop with 2–3 reps left" };
+  const c = (w - 3) % 7;
+  if (c === 6) return { w, slot: 8, fixed: true, easy: true, title: `Easy week · week ${w}`, rule: "Use about 60% of your normal weights and stop with 4 reps left. Your joints recover and you come back stronger next week.", cue: "Easy week: about 60% weight, stop with 4 reps left" };
+  return { w, slot: 2 + c, fixed: false, title: `Build · week ${c + 1} of 6`, rule: "Full training: stop with 1–2 reps left. When you hit the top of the rep range on every set, add weight next time.", cue: "Build: stop with 1–2 reps left" };
+}
+function setStart(d) { startDay = d; try { if (d) localStorage.setItem("ppa-start", d); else localStorage.removeItem("ppa-start"); } catch (e) {} renderList(); }
+
+// ---------- Rolling order: the next session follows the last one finished, whatever the weekday ----------
+let LAST = {};
+try { LAST = JSON.parse(localStorage.getItem("ppa-last") || "{}") || {}; } catch (e) {}
+const lastKey = () => prog + "|" + level;
+const curSpec = () => hasSessions() && SESSIONS[cat] ? `${cat}:${variant}` : cat;
+const specLabel = sp => { const [c, v] = sp.split(":"); return label(c) + (v ? " " + v : ""); };
+function nextUp() {
+  const seq = P_().plans[level].days, last = LAST[lastKey()];
+  const after = i => { for (let k = 1; k <= seq.length; k++) { const sp = seq[(i + k + seq.length) % seq.length]; if (sp !== "rest") return sp; } };
+  if (!last) return { spec: seq.find(x => x !== "rest"), state: "start" };
+  let i = seq.indexOf(last.spec);
+  if (i < 0) i = seq.findIndex(x => x.split(":")[0] === last.spec.split(":")[0]);
+  const gap = dayNum(todayKey) - dayNum(last.d), next = after(i);
+  if (gap <= 0) return { spec: next, state: "doneToday", doneSpec: last.spec };
+  if (seq[(i + 1) % seq.length] === "rest" && gap === 1) return { spec: next, state: "rest", doneSpec: last.spec };
+  return { spec: next, state: "go", doneSpec: last.spec, lastDay: last.d };
+}
+function openSpec(sp) { const [c, v] = sp.split(":"); if (v) variant = v; setCat(c); }
+function renderStatus() {
+  const nu = nextUp(), box = $("upNext");
+  const msg = {
+    start: () => ["Up next", specLabel(nu.spec), "Your first session in this plan."],
+    go: () => ["Up next", specLabel(nu.spec), `Last: ${specLabel(nu.doneSpec)} on ${fmtDay(nu.lastDay)}`],
+    doneToday: () => [`${specLabel(nu.doneSpec)} done today ✓`, "Recover", `Next up: ${specLabel(nu.spec)}`],
+    rest: () => ["Rest day today", "Recover", `Walk, stretch and sleep well. Next up: ${specLabel(nu.spec)}`]
+  }[nu.state]();
+  box.className = "upnext" + (nu.state === "doneToday" || nu.state === "rest" ? " calm" : "");
+  box.innerHTML = `<div><div class="eyebrow"></div><div class="big"></div><p></p></div><button type="button" id="upNextBtn"></button>`;
+  box.querySelector(".eyebrow").textContent = msg[0]; box.querySelector(".big").textContent = msg[1]; box.querySelector("p").textContent = msg[2];
+  const btn = $("upNextBtn"), viewing = curSpec() === nu.spec;
+  btn.textContent = nu.state === "go" || nu.state === "start" ? (viewing ? "Showing" : "Open") : (viewing ? "Showing next" : "Preview next");
+  btn.disabled = viewing; btn.style.opacity = viewing ? .6 : 1;
+  btn.addEventListener("click", () => { openSpec(nu.spec); window.scrollTo(0, 0); });
+
+  const ph = phaseInfo(), pb = $("phase");
+  if (!ph) {
+    pb.innerHTML = `<div class="eyebrow">Training phase</div><div class="t">Back to lifting after a break?</div>
+      <p>Start with 2 ramp-up weeks so your joints and tendons catch up with your muscles. The app counts the weeks and tells you how hard to push.</p>
+      <div class="row"><button class="start" type="button" id="phStart">Start ramp-up today</button><button class="ghost" type="button" id="phSkip">Skip, I'm already training</button></div>`;
+    $("phStart").addEventListener("click", () => setStart(todayKey));
+    $("phSkip").addEventListener("click", () => setStart(dateMinus(14)));
+    return;
+  }
+  pb.innerHTML = `<div class="eyebrow">Training phase · week ${ph.w}</div><div class="t"></div><p></p>
+    <div class="weeks" aria-hidden="true">${Array.from({ length: 9 }, (_, k) => `<i class="${k === 8 ? "easy " : ""}${k <= ph.slot ? "on" : ""}"></i>`).join("")}</div>
+    <div class="links"><button class="linkbtn" type="button" id="phRestart">Restart ramp-up</button>${ph.w <= 2 ? `<button class="linkbtn" type="button" id="phSkip2">Skip to full training</button>` : ""}</div>`;
+  pb.querySelector(".t").textContent = ph.title; pb.querySelector("p").textContent = ph.rule;
+  $("phRestart").addEventListener("click", () => setStart(todayKey));
+  if ($("phSkip2")) $("phSkip2").addEventListener("click", () => setStart(dateMinus(14)));
+}
 function dayEx(c) {
   const base = P_().ex[c];
-  if (prog !== "ppl" || !SESSIONS[c]) return base;
-  const main = hasSessions() ? SESSIONS[c][variant].map(id => sessionItem(c, variant, id)) : BEGINNER[c].map(id => POOL[id]);
+  let main = prog === "ppl" && SESSIONS[c]
+    ? (hasSessions() ? SESSIONS[c][variant].map(id => sessionItem(c, variant, id)) : BEGINNER[c].map(id => POOL[id]))
+    : base.filter(e => !e.light);
+  const ph = phaseInfo();
+  if (ph && ph.fixed) main = main.map(e => Object.assign({}, e, { sets: 3, setsLabel: "3" }));
   return [...base.filter(e => e.warmup), ...main, ...base.filter(e => e.cooldown)];
 }
 
@@ -821,8 +917,8 @@ const PROGRAMS = {
     source: 'Exercises, sets and schedule follow <a href="https://www.healthline.com/nutrition/push-pull-workout" target="_blank" rel="noopener">Healthline\'s push-pull workout guide</a>.',
     tip: "Pick a weight where reps 9 and 10 feel hard but your form still holds. If you can do more than 12 with good form, go heavier.",
     plans: {
-      beg: { days: ["push", "rest", "pull", "rest", "legs"], note: "One of each day per week, with a rest day between. Good for busy weeks or when you're new to lifting." },
-      adv: { days: ["push:A", "pull:A", "legs:A", "rest", "push:B", "pull:B", "legs:B"], note: "Each body part twice a week. A days are heavy (6–10 reps), B days are lighter with more reps (10–15) and different exercises." }
+      beg: { days: ["push", "rest", "pull", "rest", "legs", "rest"], note: "Rolling order: one of each day, with a rest day after each. Good for busy weeks." },
+      adv: { days: ["push:A", "pull:A", "legs:A", "rest", "push:B", "pull:B", "legs:B", "rest"], note: "Rolling order, 8-day cycle. Each body part twice a week. A days are heavy (6–10 reps), B days are lighter with more reps (10–15) and different exercises." }
     }
   },
   women: {
@@ -837,8 +933,8 @@ const PROGRAMS = {
     source: "This program follows common glute-focused training practice. It is not taken from the Healthline article. Anyone can follow either program.",
     tip: "Pick a weight where the last 2–3 reps are hard but your form holds. When you can do 15 clean reps on every set, go heavier.",
     plans: {
-      beg: { days: ["glutes", "rest", "upper", "rest", "quads"], note: "Start with 3 workouts a week and a rest day between each." },
-      adv: { days: ["glutes", "upper", "quads", "rest", "glutes", "upper", "quads"], note: "With 6+ months of training, repeat the cycle for 6 days a week with one rest day." }
+      beg: { days: ["glutes", "rest", "upper", "rest", "quads", "rest"], note: "Rolling order: one of each day, with a rest day after each." },
+      adv: { days: ["glutes", "upper", "quads", "rest"], note: "Rolling order: three days on, one day off. For 6+ months of training." }
     }
   }
 };
@@ -1100,7 +1196,12 @@ function renderList() {
   const mins = Math.round(dayEx(cat).reduce((m, e) => m + (e.light ? 60 : e.sets * (45 + e.rest)), 0) / 60);
   $("timeEst").textContent = `~${mins} min`;
   $("startBtn").textContent = n === all.length ? "Do it again" : n ? "Continue workout" : "Start workout";
+  if (all.length && n === all.length) {
+    const L = LAST[lastKey()];
+    if (!L || L.d !== todayKey || L.spec !== curSpec()) { LAST[lastKey()] = { spec: curSpec(), d: todayKey }; try { localStorage.setItem("ppa-last", JSON.stringify(LAST)); } catch (e) {} }
+  }
   renderPlan();
+  renderStatus();
 }
 let pending = null;
 function askToggle(ex, from) {
@@ -1240,13 +1341,15 @@ function renderWorkout() {
       </div>
       <div class="lastline" id="wkLast"></div>
     </div>`}
+    <p class="phase-cue" id="wkPhase"></p>
     <p class="cue"></p>
     <div class="wk-row">
       <button class="start" type="button" data-act="done">Set done</button>
-      ${ex.sets < 4 && !ex.light ? `<button class="ghost" type="button" data-act="extra">+1 set</button>` : ""}
+      ${ex.sets < 4 && !ex.light && !(phaseInfo() || {}).fixed ? `<button class="ghost" type="button" data-act="extra">+1 set</button>` : ""}
     </div>`;
   w.querySelector(".wk-name").textContent = ex.name;
   w.querySelector(".cue").textContent = ex.tip;
+  const ph = phaseInfo(); $("wkPhase").textContent = !ex.light && ph ? ph.cue : ""; $("wkPhase").hidden = !$("wkPhase").textContent;
   if (!ex.light) {
     const sg = suggest(ex, wk.set - 1), l = lastSession(ex.id);
     if (sg) { $("wkKg").value = sg.kg || ""; $("wkReps").value = sg.r; }
@@ -1281,6 +1384,7 @@ $("wkWrap").addEventListener("click", e => {
 $("startBtn").addEventListener("click", () => startWorkout());
 document.addEventListener("keydown", e => { if (e.key === "Escape") { if (!$("confirm").hidden) closeConfirm(); else if (wk) endWorkout(); else closeDetail(); } });
 
+{ const nu = nextUp(); const sp = nu.state === "doneToday" ? nu.doneSpec : nu.spec; const [c, v] = sp.split(":"); if (P_().ex[c]) { cat = c; if (v) variant = v; } }
 renderList();
 })();
 </script>
