@@ -164,6 +164,23 @@ ol.steps li::before { content: counter(s); font-family: var(--display); font-wei
 .wk-reps span { color: var(--muted); font-weight: 600; }
 .cue { margin-top: 10px; color: var(--muted); }
 .wk-row { display: flex; gap: 10px; margin-top: 16px; }
+.logrow { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.logrow label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.logrow input { width: 92px; font: 700 24px/1 var(--display); font-variant-numeric: tabular-nums; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); }
+.logrow input:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.logrow .x { font: 700 22px var(--display); color: var(--muted); padding-bottom: 12px; }
+.logrow .ghost { padding: 12px 16px; }
+.wk-log { margin-top: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.lastline { font-size: 14px; color: var(--muted); }
+.lastline b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.loglist { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 15px; }
+.loglist li { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
+.loglist li span:first-child { color: var(--muted); white-space: nowrap; }
+.loglist li span:last-child { font-variant-numeric: tabular-nums; text-align: right; }
+.loglist .today span:last-child { font-weight: 700; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--muted); text-decoration: underline; font-size: 13px; }
+.card .last { font-size: 12px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.card .last b { color: var(--ink); font-weight: 600; }
 .wk-row .start { margin: 0; flex: 1; }
 .rest { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 18px; }
 .ring { width: 220px; height: 220px; max-width: 100%; }
@@ -250,6 +267,10 @@ ol.steps li::before { content: counter(s); font-family: var(--display); font-wei
     <div class="chips" id="dChips"></div>
     <h4>How to do it</h4>
     <ol class="steps" id="dSteps"></ol>
+    <div id="dLogWrap">
+      <h4>Your log</h4>
+      <div class="note" id="dLog"></div>
+    </div>
     <h4>Form check</h4>
     <div class="note" id="dNote"></div>
     <div class="actions">
@@ -895,6 +916,42 @@ const todayKey = new Date().toISOString().slice(0, 10);
 let done = {};
 try { const s = JSON.parse(localStorage.getItem("ppa-done") || "{}"); if (s.day === todayKey) done = s.done || {}; } catch (e) {}
 const save = () => { try { localStorage.setItem("ppa-done", JSON.stringify({ day: todayKey, done })); } catch (e) {} };
+
+// ---------- Weight log: { exerciseId: [{ d: "YYYY-MM-DD", sets: [{ kg, r }] }] }, newest last, kept on this device ----------
+let LOG = {};
+try { LOG = JSON.parse(localStorage.getItem("ppa-log") || "{}") || {}; } catch (e) {}
+const saveLog = () => { try { localStorage.setItem("ppa-log", JSON.stringify(LOG)); } catch (e) {} };
+const isTimed = ex => /sec/.test(ex.reps);
+const repUnit = ex => isTimed(ex) ? "sec" : "reps";
+const todayEntry = id => { const h = LOG[id] || []; const last = h[h.length - 1]; return last && last.d === todayKey ? last : null; };
+const lastSession = id => { const h = (LOG[id] || []).filter(e => e.d !== todayKey && e.sets.length); return h[h.length - 1] || null; };
+function addSet(id, kg, r) {
+  const h = LOG[id] || (LOG[id] = []);
+  let t = todayEntry(id); if (!t) { t = { d: todayKey, sets: [] }; h.push(t); }
+  t.sets.push({ kg: kg || 0, r });
+  if (h.length > 30) h.splice(0, h.length - 30);
+  saveLog();
+}
+function removeLastSet(id) {
+  const t = todayEntry(id); if (!t) return;
+  t.sets.pop(); if (!t.sets.length) LOG[id].pop(); saveLog();
+}
+function fmtSets(sets, ex) {
+  if (!sets || !sets.length) return "";
+  const u = isTimed(ex) ? " s" : "";
+  const sameKg = sets.every(x => x.kg === sets[0].kg);
+  if (sameKg) return (sets[0].kg ? `${sets[0].kg} kg × ` : "") + sets.map(x => x.r + u).join(" · ");
+  return sets.map(x => (x.kg ? `${x.kg}×` : "") + x.r + u).join(" · ");
+}
+const fmtDay = d => new Date(d + "T12:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+// What to pre-fill for set n: this session's previous set, else the same set last time, else last time's final set.
+function suggest(ex, n) {
+  const t = todayEntry(ex.id), l = lastSession(ex.id);
+  if (t && t.sets.length) return t.sets[t.sets.length - 1];
+  if (l) return l.sets[Math.min(n, l.sets.length - 1)];
+  return null;
+}
+const num = v => { const x = parseFloat(String(v).replace(",", ".")); return isFinite(x) && x >= 0 ? Math.round(x * 100) / 100 : null; };
 let cat = "push", level = "beg";
 try { const pr = localStorage.getItem("ppa-prog"); if (PROGRAMS[pr]) prog = pr; const c = localStorage.getItem("ppa-cat"); if (P_().ex[c]) cat = c; else cat = Object.keys(P_().cats)[0]; const l = localStorage.getItem("ppa-lvl"); if (l === "beg" || l === "adv") level = l; const v = localStorage.getItem("ppa-venue"); if (v === "home") venue = v; } catch (e) {}
 
@@ -976,6 +1033,10 @@ function renderList() {
     b.querySelector(".muscles").textContent = ex.muscles;
     b.querySelector(".dose").innerHTML = ex.light ? ex.reps : `${ex.setsLabel} × ${ex.reps}`;
     const sm = document.createElement("small"); sm.textContent = ex.equip; b.querySelector(".dose").appendChild(sm);
+    if (!ex.light) {
+      const t = todayEntry(ex.id), l = lastSession(ex.id), src = t && t.sets.length ? ["Today", t.sets] : l ? ["Last", l.sets] : null;
+      if (src) { const ln = document.createElement("div"); ln.className = "last"; ln.innerHTML = `${src[0]}: <b></b>`; ln.querySelector("b").textContent = fmtSets(src[1], ex); b.querySelector(".meta").appendChild(ln); }
+    }
     const open = b.querySelector(".card-open"), chk = b.querySelector(".check"); chk.dataset.id = ex.id;
     open.setAttribute("aria-label", `${ex.name}, ${ex.setsLabel} sets of ${ex.reps}. Show how to do it`);
     chk.setAttribute("aria-label", done[ex.id] ? `${ex.name} is done. Undo` : `Mark ${ex.name} as done`);
@@ -1033,8 +1094,36 @@ function openDetail(ex) {
   for (const [label, text] of [["Tip:", ex.tip], ["Avoid:", ex.mistake], ["Weight:", P_().tip]]) {
     const div = document.createElement("div"); const b = document.createElement("b"); b.textContent = label + " "; div.append(b, text); $("dNote").appendChild(div);
   }
+  renderDetailLog(ex);
   $("dMark").textContent = done[ex.id] ? "Undo done" : "Mark done";
   $("detail").scrollTop = 0; $("detail").classList.add("open"); $("dClose").focus();
+}
+function renderDetailLog(ex) {
+  $("dLogWrap").hidden = !!ex.light;
+  if (ex.light) return;
+  const box = $("dLog"), t = todayEntry(ex.id), hist = (LOG[ex.id] || []).filter(e => e.d !== todayKey).slice(-5).reverse(), sg = suggest(ex, t ? t.sets.length : 0);
+  box.innerHTML = `<div class="logrow">
+      <label for="logKg">kg${/None|Pull-up|band/i.test(ex.equip) ? " (extra)" : ""}<input id="logKg" type="number" inputmode="decimal" step="0.5" min="0" placeholder="0"></label>
+      <span class="x">×</span>
+      <label for="logReps">${repUnit(ex)}<input id="logReps" type="number" inputmode="numeric" step="1" min="0" placeholder="${isTimed(ex) ? 30 : 10}"></label>
+      <button class="ghost" type="button" id="logAdd">Log set</button>
+    </div>
+    <ul class="loglist"></ul>`;
+  if (sg) { $("logKg").value = sg.kg || ""; $("logReps").value = sg.r; }
+  const ul = box.querySelector(".loglist");
+  const row = (d, sets, cls) => { const li = document.createElement("li"); if (cls) li.className = cls; const a = document.createElement("span"), b = document.createElement("span"); a.textContent = d; b.textContent = fmtSets(sets, ex); li.append(a, b); ul.appendChild(li); return li; };
+  if (t && t.sets.length) {
+    const li = row("Today", t.sets, "today");
+    const u = document.createElement("button"); u.type = "button"; u.className = "linkbtn"; u.textContent = "Undo last set";
+    u.addEventListener("click", () => { removeLastSet(ex.id); renderDetailLog(ex); renderList(); });
+    li.firstChild.append(document.createElement("br"), u);
+  }
+  for (const e of hist) row(fmtDay(e.d), e.sets);
+  if (!ul.children.length) { const li = document.createElement("li"); li.textContent = "No sets logged yet. Log each set here, or use Do this one to log as you go."; ul.appendChild(li); }
+  $("logAdd").addEventListener("click", () => {
+    const r = num($("logReps").value); if (!r) { $("logReps").focus(); return; }
+    addSet(ex.id, num($("logKg").value), r); renderDetailLog(ex); renderList();
+  });
 }
 const closeDetail = () => { $("detail").classList.remove("open"); live.delete($("dFig")); };
 $("dClose").addEventListener("click", closeDetail);
@@ -1094,6 +1183,14 @@ function renderWorkout() {
     <div class="wk-name"></div>
     <div class="wk-sets">${setBars}</div>
     <div class="wk-reps"><b>${ex.reps}</b><span>${ex.light ? (ex.cooldown ? "cool-down · hold and breathe" : "warm-up · no rest after") : `${/^\d+(–\d+)?$/.test(ex.reps) ? "reps · " : ""}set ${wk.set} of ${ex.sets}`}</span></div>
+    ${ex.light ? "" : `<div class="wk-log">
+      <div class="logrow">
+        <label for="wkKg">kg${/None|Pull-up|band/i.test(ex.equip) ? " (extra)" : ""}<input id="wkKg" type="number" inputmode="decimal" step="0.5" min="0" placeholder="0"></label>
+        <span class="x">×</span>
+        <label for="wkReps">${repUnit(ex)}<input id="wkReps" type="number" inputmode="numeric" step="1" min="0"></label>
+      </div>
+      <div class="lastline" id="wkLast"></div>
+    </div>`}
     <p class="cue"></p>
     <div class="wk-row">
       <button class="start" type="button" data-act="done">Set done</button>
@@ -1101,6 +1198,13 @@ function renderWorkout() {
     </div>`;
   w.querySelector(".wk-name").textContent = ex.name;
   w.querySelector(".cue").textContent = ex.tip;
+  if (!ex.light) {
+    const sg = suggest(ex, wk.set - 1), l = lastSession(ex.id);
+    if (sg) { $("wkKg").value = sg.kg || ""; $("wkReps").value = sg.r; }
+    else $("wkReps").placeholder = isTimed(ex) ? "30" : (ex.reps.match(/\d+/) || ["10"])[0];
+    $("wkLast").innerHTML = l ? `Last time (${fmtDay(l.d)}): <b></b>` : "First time logging this one. Pick a weight where the last reps feel hard.";
+    if (l) $("wkLast").querySelector("b").textContent = fmtSets(l.sets, ex);
+  }
   figure($("wkFig"), ex);
 }
 function afterRest() {
@@ -1115,6 +1219,7 @@ $("wkWrap").addEventListener("click", e => {
   if (act === "extra") { wk.queue[wk.i].sets++; return renderWorkout(); }
   if (act === "done") {
     const ex = wk.queue[wk.i];
+    if (!ex.light && $("wkReps")) { const r = num($("wkReps").value); if (r) addSet(ex.id, num($("wkKg").value), r); }
     wk.set++;
     if (wk.set > ex.sets) { done[ex.id] = true; save(); }
     if (wk.set > ex.sets && wk.i === wk.queue.length - 1) { wk.i++; return renderWorkout(); }
