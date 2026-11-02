@@ -712,19 +712,30 @@ const EXTRA = [
 const POOL = Object.fromEntries([...Object.values(EX).flat(), ...EXTRA, ...Object.values(W).flat()].map(e => [e.id, e]));
 const SESSIONS = {
   push: { A: ["seatpress", "inclinepress", "skull", "lateral"], B: ["dbbench", "fly", "pushdown", "lateral"] },
-  pull: { A: ["bbrow", "pulldown", "facepull", "curl", "deadhang"], B: ["cablerow", "straightarm", "facepull", "hammer", "deadhang"] },
+  // No Dead Hang in Pull B: the next day is Legs B with Deadlifts, which need a fresh grip.
+  pull: { A: ["bbrow", "pulldown", "facepull", "curl", "deadhang"], B: ["cablerow", "straightarm", "facepull", "hammer"] },
   legs: { A: ["squat", "legcurl", "calf", "cablecrunch"], B: ["deadlift", "lunge", "calf", "w-plank"] }
 };
+// Beginner week: each day once a week, trimmed to the most important lifts so it stays near 45 minutes.
+const BEGINNER = {
+  push: ["inclinepress", "seatpress", "fly", "pushdown", "lateral"],
+  pull: ["bbrow", "pulldown", "facepull", "hammer", "deadhang"],
+  legs: ["deadlift", "squat", "legcurl", "calf", "cablecrunch"]
+};
+// Smaller isolation lifts recover faster, so they rest 60–90 s instead of 2–3 min.
+for (const id of ["lateral", "fly", "pushdown", "skull", "curl", "hammer", "legcurl", "calf", "cablecrunch", "straightarm"])
+  Object.assign(POOL[id], { rest: 75, restLabel: "Rest 60–90 s" });
 // Hammer Curl is the main arm exercise in Pull B, so it moves out of the finisher there.
 const sessionItem = (day, v, id) =>
-  (day === "pull" && v === "B" && id === "hammer") ? Object.assign({}, POOL[id], { finisher: false, sets: 3, setsLabel: "3–4", rest: 120, restLabel: null }) :
+  (day === "pull" && v === "B" && id === "hammer") ? Object.assign({}, POOL[id], { finisher: false, sets: 3, setsLabel: "3–4", rest: 75, restLabel: "Rest 60–90 s" }) :
   id === "w-plank" ? Object.assign({}, POOL[id], { rest: 60, restLabel: "Rest 60 s" }) : POOL[id];
 let variant = "A";
 const hasSessions = () => prog === "ppl" && level === "adv";
 function dayEx(c) {
   const base = P_().ex[c];
-  if (!hasSessions() || !SESSIONS[c]) return base;
-  return [...base.filter(e => e.warmup), ...SESSIONS[c][variant].map(id => sessionItem(c, variant, id)), ...base.filter(e => e.cooldown)];
+  if (prog !== "ppl" || !SESSIONS[c]) return base;
+  const main = hasSessions() ? SESSIONS[c][variant].map(id => sessionItem(c, variant, id)) : BEGINNER[c].map(id => POOL[id]);
+  return [...base.filter(e => e.warmup), ...main, ...base.filter(e => e.cooldown)];
 }
 
 const ICONS = {
@@ -738,7 +749,7 @@ const ICONS = {
 const PROGRAMS = {
   ppl: {
     cats: { push: { label: "Push", short: "Push" }, pull: { label: "Pull", short: "Pull" }, legs: { label: "Legs & Core", short: "Legs" } },
-    ex: EX, restLabel: "Rest 2–3 min",
+    ex: EX, restLabel: "Rest 2–3 min", mainRest: "Rest 2–3 min on big lifts, 60–90 s on small ones",
     note: "Upper-body push and pull days plus a legs and core day. 3–4 sets of 8–12 reps.",
     source: 'Exercises, sets and schedule follow <a href="https://www.healthline.com/nutrition/push-pull-workout" target="_blank" rel="noopener">Healthline\'s push-pull workout guide</a>.',
     tip: "Pick a weight where reps 9 and 10 feel hard but your form still holds. If you can do more than 12 with good form, go heavier.",
@@ -949,7 +960,7 @@ function renderList() {
     if (sec !== prevSec && (sec !== "main" || prevSec === "warm")) {
       const dv = document.createElement("div"); dv.className = "divider";
       const head = { warm: ["Warm-up", `About ${warmMins} min · no rest between moves`],
-                     main: ["Workout", P_().restLabel.replace("Rest ", "rest ") + " between sets"],
+                     main: ["Workout", (P_().mainRest || P_().restLabel + " between sets").replace("Rest ", "rest ")],
                      fin: ["Forearm finisher", `Do these last · ${(ex.restLabel || "").replace("Rest ", "rest ")}`],
                      cool: ["Cool-down", `About ${coolMins} min · hold each stretch and breathe slowly`] }[sec];
       dv.innerHTML = `<b>${head[0]}</b><span>${head[1]}</span>`;
