@@ -98,6 +98,12 @@ h1 span { color: var(--accent); transition: color .3s; }
 .day.rest b { color: var(--muted); }
 .day.cur { background: var(--accent); color: #fff; box-shadow: none; }
 .day.cur b { color: #fff; }
+.day small { font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; opacity: .8; }
+.day.today { outline: 2px solid var(--ink); outline-offset: 1px; }
+.day b.long { font-family: var(--body); font-weight: 700; font-size: 11px; letter-spacing: 0; text-transform: none; line-height: 1.15; overflow-wrap: anywhere; padding: 0 2px; }
+.weekset { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.weekset label { flex: 1 1 140px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.weekset select, .weekset input { font: 600 15px var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; min-width: 0; }
 .plan p { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
 .status { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
 .upnext { background: var(--accent); color: #fff; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -301,10 +307,22 @@ ol.steps li::before { content: counter(s); font-family: var(--display); font-wei
       <span class="eyebrow">Your week</span>
       <div class="seg" role="group" aria-label="Experience level">
         <button type="button" id="lvl-beg" data-lvl="beg" aria-pressed="true">3 days / week</button>
-        <button type="button" id="lvl-adv" data-lvl="adv" aria-pressed="false">5 days / week</button>
+        <button type="button" id="lvl-adv" data-lvl="adv" aria-pressed="false">6 days / week</button>
       </div>
     </div>
     <div class="days" id="days"></div>
+    <div class="weekset">
+      <label for="day1Sel">Day 1 is
+        <select id="day1Sel">
+          <option value="">Rolling, no fixed days</option>
+          <option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option>
+          <option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option><option value="0">Sunday</option>
+        </select>
+      </label>
+      <label for="day7In">Day 7 name
+        <input id="day7In" type="text" maxlength="14" placeholder="Rest" autocomplete="off">
+      </label>
+    </div>
     <p id="planNote"></p>
   </section>
 
@@ -898,8 +916,23 @@ function lastDone() {
   if (!a) return b; if (!b) return a;
   return dayNum(b.d) > dayNum(a.d) ? b : a;
 }
+// ---------- Fixed weekdays: "Day 1 is Wednesday" ties the 7-day plan to the calendar ----------
+let day1 = null, day7 = "Rest";
+try { const d = localStorage.getItem("ppa-day1"); if (d !== null && d !== "") day1 = +d; day7 = localStorage.getItem("ppa-day7") || "Rest"; } catch (e) {}
+const WD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const weekMode = () => day1 !== null && P_().plans[level].days.length === 7;
+const todayIdx = () => (new Date().getDay() - day1 + 7) % 7;
+const restName = i => i === 6 ? day7 : "Rest";
 function nextUp() {
   const seq = P_().plans[level].days, last = lastDone();
+  if (weekMode()) {
+    const i = todayIdx(), sp = seq[i];
+    let k = 1; while (k < 7 && seq[(i + k) % 7] === "rest") k++;
+    const next = seq[(i + k) % 7], nextDay = WD[(new Date().getDay() + k) % 7] + (k === 1 ? " (tomorrow)" : "");
+    if (sp === "rest") return { state: "restDay", spec: next, name: restName(i), i, nextDay };
+    if (last && last.d === todayKey && last.spec === sp) return { state: "doneToday", spec: next, doneSpec: sp, i, nextDay };
+    return { state: "today", spec: sp, i };
+  }
   const after = i => { for (let k = 1; k <= seq.length; k++) { const sp = seq[(i + k + seq.length) % seq.length]; if (sp !== "rest") return sp; } };
   if (!last) return { spec: seq.find(x => x !== "rest"), state: "start" };
   let i = seq.indexOf(last.spec);
@@ -914,11 +947,13 @@ function renderStatus() {
   const nu = nextUp(), box = $("upNext");
   const msg = {
     start: () => ["Up next", specLabel(nu.spec), "Your first session in this plan."],
+    today: () => [`Today · ${WD[new Date().getDay()]} · Day ${nu.i + 1}`, specLabel(nu.spec), "Your scheduled session for today."],
+    restDay: () => [`Today · ${WD[new Date().getDay()]} · Day ${nu.i + 1}`, nu.name, `Next: ${specLabel(nu.spec)} on ${nu.nextDay}`],
     go: () => ["Up next", specLabel(nu.spec), `Last: ${specLabel(nu.doneSpec)} on ${fmtDay(nu.lastDay)}`],
-    doneToday: () => [`${specLabel(nu.doneSpec)} done today ✓`, "Recover", `Next up: ${specLabel(nu.spec)}`],
+    doneToday: () => [`${specLabel(nu.doneSpec)} done today ✓`, "Recover", `Next up: ${specLabel(nu.spec)}${nu.nextDay ? " on " + nu.nextDay : ""}`],
     rest: () => ["Rest day today", "Recover", `Walk, stretch and sleep well. Next up: ${specLabel(nu.spec)}`]
   }[nu.state]();
-  box.className = "upnext" + (nu.state === "doneToday" || nu.state === "rest" ? " calm" : "");
+  box.className = "upnext" + (["doneToday", "rest", "restDay"].includes(nu.state) ? " calm" : "");
   const catchUp = nu.state === "go" || nu.state === "start";
   box.innerHTML = `<div><div class="eyebrow"></div><div class="big"></div><p></p>${catchUp ? `<div class="catch"><span>Did it already?</span><button type="button" data-ago="0">Today</button><button type="button" data-ago="1">Yesterday</button></div>` : ""}</div><button type="button" id="upNextBtn"></button>`;
   box.querySelector(".eyebrow").textContent = msg[0]; box.querySelector(".big").textContent = msg[1]; box.querySelector("p").textContent = msg[2];
@@ -929,7 +964,7 @@ function renderStatus() {
     const n2 = nextUp(); if (n2.state === "go" || n2.state === "start") openSpec(n2.spec); else renderList();
   }));
   const btn = $("upNextBtn"), viewing = curSpec() === nu.spec;
-  btn.textContent = nu.state === "go" || nu.state === "start" ? (viewing ? "Showing" : "Open") : (viewing ? "Showing next" : "Preview next");
+  btn.textContent = ["go", "start", "today"].includes(nu.state) ? (viewing ? "Showing" : "Open") : (viewing ? "Showing next" : "Preview next");
   btn.disabled = viewing; btn.style.opacity = viewing ? .6 : 1;
   btn.addEventListener("click", () => { openSpec(nu.spec); window.scrollTo(0, 0); });
 
@@ -971,14 +1006,14 @@ const ICONS = {
 const PROGRAMS = {
   ppl: {
     cats: { push: { label: "Push", short: "Push" }, pull: { label: "Pull", short: "Pull" }, legs: { label: "Legs & Core", short: "Legs" },
-            upper: { label: "Upper Body", short: "Upper" }, lower: { label: "Light Lower", short: "Lower" } },
+            upper: { label: "Upper Body", short: "Upper" }, lower: { label: "Light Legs & Abs", short: "Light" } },
     ex: EX, restLabel: "Rest 2–3 min", mainRest: "Rest 2–3 min on big lifts, 60–90 s on small ones",
     note: "Upper-body push and pull days plus a legs and core day. 3–4 sets of 8–12 reps.",
     source: 'Exercises, sets and schedule follow <a href="https://www.healthline.com/nutrition/push-pull-workout" target="_blank" rel="noopener">Healthline\'s push-pull workout guide</a>.',
     tip: "Pick a weight where reps 9 and 10 feel hard but your form still holds. If you can do more than 12 with good form, go heavier.",
     plans: {
-      beg: { days: ["push", "rest", "pull", "rest", "legs", "rest"], note: "Rolling order: one of each day, with a rest day after each. Good for busy weeks." },
-      adv: { days: ["push", "pull", "legs", "rest", "upper", "lower", "rest"], note: "Rolling order, 7-day cycle: Push, Pull, Legs + Abs, rest, Upper, light Lower, rest. Upper body and legs are each trained twice." }
+      beg: { days: ["push", "rest", "pull", "rest", "legs", "rest", "rest"], note: "One of each day, with a rest day after each. Good for busy weeks." },
+      adv: { days: ["push", "pull", "legs", "rest", "upper", "lower", "rest"], note: "Push, Pull, Legs + Abs, rest, Upper, Light Legs & Abs, then Day 7. Upper body and legs are each trained twice." }
     }
   },
   women: {
@@ -993,8 +1028,8 @@ const PROGRAMS = {
     source: "This program follows common glute-focused training practice. It is not taken from the Healthline article. Anyone can follow either program.",
     tip: "Pick a weight where the last 2–3 reps are hard but your form holds. When you can do 15 clean reps on every set, go heavier.",
     plans: {
-      beg: { days: ["glutes", "rest", "upper", "rest", "quads", "rest"], note: "Rolling order: one of each day, with a rest day after each." },
-      adv: { days: ["glutes", "upper", "quads", "rest"], note: "Rolling order: three days on, one day off. For 6+ months of training." }
+      beg: { days: ["glutes", "rest", "upper", "rest", "quads", "rest", "rest"], note: "One of each day, with a rest day after each." },
+      adv: { days: ["glutes", "upper", "quads", "rest", "glutes", "upper", "quads"], note: "Three days on, one off, three on. For 6+ months of training." }
     }
   }
 };
@@ -1178,12 +1213,18 @@ function renderPlan() {
     const isCur = c === cat && (!v || v === variant) && !marked; if (isCur) marked = true;
     b.className = "day" + (c === "rest" ? " rest" : "") + (isCur ? " cur" : "");
     if (c !== "rest") b.dataset.slot = slot(c);
-    b.innerHTML = `Day ${i + 1}<b>${c === "rest" ? "Rest" : P_().cats[c].short + (v ? " " + v : "")}</b>`;
-    if (c === "rest") { b.disabled = true; b.setAttribute("aria-label", `Day ${i + 1}: rest`); }
+    const wk7 = weekMode(), name = c === "rest" ? restName(i) : P_().cats[c].short + (v ? " " + v : "");
+    b.innerHTML = `Day ${i + 1}${wk7 ? `<small>${WD[(day1 + i) % 7]}</small>` : ""}<b class="${name.length > 7 ? "long" : ""}"></b>`;
+    // Long single words (like "Badminton") get a soft hyphen so they break as "Badmin-ton" in the narrow box.
+    b.querySelector("b").textContent = name.length > 7 && !/\s/.test(name) ? name.slice(0, Math.ceil(name.length * .6)) + "\u00AD" + name.slice(Math.ceil(name.length * .6)) : name;
+    if (wk7 && i === todayIdx()) b.classList.add("today");
+    if (c === "rest") { b.disabled = true; b.setAttribute("aria-label", `Day ${i + 1}${wk7 ? " (" + WD[(day1 + i) % 7] + ")" : ""}: ${name}`); }
     else b.addEventListener("click", () => { if (v) variant = v; setCat(c); });
     days.appendChild(b);
   });
-  $("planNote").textContent = P_().plans[level].note;
+  $("planNote").textContent = (weekMode() ? `Fixed weekdays, starting ${WD[day1]}. ` : "Rolling order: the next session follows the last one you finished. ") + P_().plans[level].note;
+  $("day1Sel").value = day1 === null ? "" : String(day1);
+  if (document.activeElement !== $("day7In")) $("day7In").value = day7 === "Rest" ? "" : day7;
 }
 document.querySelectorAll("[data-lvl]").forEach(b => b.addEventListener("click", () => {
   level = b.dataset.lvl; try { localStorage.setItem("ppa-lvl", level); } catch (e) {} renderList();
@@ -1498,6 +1539,16 @@ if (CapApp) {
   });
 }
 
+$("day1Sel").addEventListener("change", () => {
+  day1 = $("day1Sel").value === "" ? null : +$("day1Sel").value;
+  try { localStorage.setItem("ppa-day1", $("day1Sel").value); } catch (e) {}
+  const nu = nextUp(); openSpec(nu.state === "doneToday" ? nu.doneSpec : nu.spec);
+});
+$("day7In").addEventListener("input", () => {
+  day7 = $("day7In").value.trim() || "Rest";
+  try { localStorage.setItem("ppa-day7", day7); } catch (e) {}
+  renderPlan(); renderStatus();
+});
 { const nu = nextUp(); const sp = nu.state === "doneToday" ? nu.doneSpec : nu.spec; const [c, v] = sp.split(":"); if (P_().ex[c]) { cat = c; if (v) variant = v; } }
 history.replaceState(navState(null), "");
 renderList();
