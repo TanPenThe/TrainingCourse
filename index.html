@@ -14,6 +14,8 @@
   --push: #d9480f;
   --pull: #1971c2;
   --legs: #9c6b00;
+  --upper: #0b7a6e;
+  --lower: #a63a6a;
   --accent: var(--push);
   --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
   --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -21,15 +23,17 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #141917; --surface: #1d2422; --ink: #e9eeeb; --muted: #9aa6a1; --line: #2e3734; --stage: #232b28;
-    --push: #ff7a45; --pull: #5aa9f0; --legs: #e0b23a; color-scheme: dark;
+    --push: #ff7a45; --pull: #5aa9f0; --legs: #e0b23a; --upper: #3cc4b0; --lower: #f07aa8; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #141917; --surface: #1d2422; --ink: #e9eeeb; --muted: #9aa6a1; --line: #2e3734; --stage: #232b28;
-  --push: #ff7a45; --pull: #5aa9f0; --legs: #e0b23a; color-scheme: dark;
+  --push: #ff7a45; --pull: #5aa9f0; --legs: #e0b23a; --upper: #3cc4b0; --lower: #f07aa8; color-scheme: dark;
 }
 body[data-slot="2"] { --accent: var(--pull); }
 body[data-slot="3"] { --accent: var(--legs); }
+body[data-slot="4"] { --accent: var(--upper); }
+body[data-slot="5"] { --accent: var(--lower); }
 
 html, body { height: 100%; }
 body {
@@ -66,6 +70,8 @@ h1 span { color: var(--accent); transition: color .3s; }
 .day[data-slot="1"] { box-shadow: inset 0 -3px 0 var(--push); }
 .day[data-slot="2"] { box-shadow: inset 0 -3px 0 var(--pull); }
 .day[data-slot="3"] { box-shadow: inset 0 -3px 0 var(--legs); }
+.day[data-slot="4"] { box-shadow: inset 0 -3px 0 var(--upper); }
+.day[data-slot="5"] { box-shadow: inset 0 -3px 0 var(--lower); }
 .day.rest { background: none; border: 1px dashed var(--line); cursor: default; }
 .day.rest b { color: var(--muted); }
 .day.cur { background: var(--accent); color: #fff; box-shadow: none; }
@@ -149,7 +155,7 @@ h1 span { color: var(--accent); transition: color .3s; }
 
 nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--line);
   padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
-nav.tabs .inner { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); }
+nav.tabs .inner { max-width: 520px; margin: 0 auto; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
 nav.tabs button { background: none; border: 0; padding: 10px 0 12px; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--muted);
   font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; position: relative; }
 nav.tabs button svg { width: 26px; height: 26px; }
@@ -158,6 +164,8 @@ nav.tabs button[aria-selected="true"]::before { content: ""; position: absolute;
 nav.tabs button[data-slot="1"] { --c: var(--push); }
 nav.tabs button[data-slot="2"] { --c: var(--pull); }
 nav.tabs button[data-slot="3"] { --c: var(--legs); }
+nav.tabs button[data-slot="4"] { --c: var(--upper); }
+nav.tabs button[data-slot="5"] { --c: var(--lower); }
 nav.tabs button[aria-selected="true"] svg { color: var(--c); }
 
 /* Sheets */
@@ -271,7 +279,7 @@ ol.steps li::before { content: counter(s); font-family: var(--display); font-wei
       <span class="eyebrow">Your week</span>
       <div class="seg" role="group" aria-label="Experience level">
         <button type="button" id="lvl-beg" data-lvl="beg" aria-pressed="true">3 days / week</button>
-        <button type="button" id="lvl-adv" data-lvl="adv" aria-pressed="false">6 days / week</button>
+        <button type="button" id="lvl-adv" data-lvl="adv" aria-pressed="false">5 days / week</button>
       </div>
     </div>
     <div class="days" id="days"></div>
@@ -678,7 +686,9 @@ const WARM = {
     tip: "Waking up the glutes takes pressure off the lower back in squats and deadlifts.", mistake: "Arching the lower back instead of squeezing the glutes." }
 };
 const DAY_WARMUPS = {
-  ppl: { push: ["jog", "armcircles", "catcow", "scappush"],
+  ppl: { upper: ["jog", "armcircles", "catcow", "thread", "scappush"],
+         lower: ["jog", "legswing", "bwsquat", "bridge"],
+         push: ["jog", "armcircles", "catcow", "scappush"],
          pull: ["jog", "catcow", "thread", "armcircles", "scappull"],
          legs: ["jog", "legswing", "bwsquat", "bridge", "catcow"] },
   women: { glutes: ["jog", "legswing", "bridge", "bwsquat"],
@@ -689,6 +699,7 @@ function addWarmups(prog, lib, tag) {
   for (const [day, keys] of Object.entries(DAY_WARMUPS[prog]))
     lib[day].unshift(...keys.map(k => Object.assign({}, WU, WARM[k], { id: `wu-${tag}-${day}-${k}` })));
 }
+EX.upper = []; EX.lower = [];   // Upper and Lower days of the 5-day week (their main lifts come from FIVE below)
 addWarmups("ppl", EX, "m"); addWarmups("women", W, "w"); addWarmups("women", WH, "wh");
 
 // ---------- Cool-downs: 3–4 minutes of easy stretches at the end of each day ----------
@@ -738,7 +749,9 @@ const COOL = {
     tip: "This undoes the tight hips from squats, lunges and sitting all day.", mistake: "Leaning back and arching the lower back. Stay tall." }
 };
 const DAY_COOLDOWNS = {
-  ppl: { push: ["chestdoor", "crossbody", "childpose"],
+  ppl: { upper: ["chestdoor", "crossbody", "childpose"],
+         lower: ["quad", "hamstring", "hipflexor"],
+         push: ["chestdoor", "crossbody", "childpose"],
          pull: ["childpose", "crossbody", "forearm"],
          legs: ["quad", "hamstring", "hipflexor", "childpose"] },
   women: { glutes: ["hipflexor", "hamstring", "childpose"],
@@ -782,14 +795,13 @@ EXTRA.push(
     steps: ["Attach a close-grip (V) handle and sit with your thighs under the pads.", "Pull the handle down to your upper chest, driving your elbows down beside your ribs.", "Straighten your arms slowly to return, letting your lats stretch at the top."],
     tip: "A neutral, close grip lets you pull through a longer range. It pairs with the wide-grip pulldown on Pull A.", mistake: "Leaning far back and turning it into a row." })
 );
+EXTRA.push(Object.assign({}, STD, { id: "legext", name: "Leg Extension", muscles: "Quads", equip: "Leg extension machine",
+  hi: ["leg"], dur: 2400, roller: true, props: [["bench", 72, 146, 60, 34], ["pad", 83, 146, 79, 84, 8]],
+  k: [{ h: [100, 140], s: [96, 88], a: [112, 141], f: [134, 174] },
+      { h: [100, 140], s: [96, 88], a: [112, 141], f: [166, 142] }],
+  steps: ["Sit in the machine with the pad on the front of your ankles and knees in line with the machine's pivot.", "Straighten your legs until they are nearly locked, squeezing your quads at the top.", "Lower slowly to the start."],
+  tip: "Pause for a second at the top. It's easy on the knees when you control the way down.", mistake: "Swinging the weight up with momentum." }));
 const POOL = Object.fromEntries([...Object.values(EX).flat(), ...EXTRA, ...Object.values(W).flat()].map(e => [e.id, e]));
-// A sessions are heavy (6–10 reps on the main lifts), B sessions are lighter with more reps (10–15).
-const SESSIONS = {
-  push: { A: ["dbbench", "seatpress", "skull", "lateral"], B: ["inclinepress", "fly", "pushdown", "lateral"] },
-  // No Dead Hang in Pull B: the next day is Legs B with Romanian Deadlifts, which need a fresh grip.
-  pull: { A: ["bbrow", "pulldown", "facepull", "curl", "deadhang"], B: ["cablerow", "cgpulldown", "facepull", "hammer"] },
-  legs: { A: ["squat", "legcurl", "calf", "cablecrunch"], B: ["rdl", "legpress", "calf", "w-plank"] }
-};
 // Beginner week: each day once a week, trimmed to the most important lifts so it stays near 45 minutes.
 const BEGINNER = {
   push: ["inclinepress", "seatpress", "fly", "pushdown", "lateral"],
@@ -799,19 +811,24 @@ const BEGINNER = {
 // Smaller isolation lifts recover faster, so they rest 60–90 s instead of 2–3 min.
 const ISO = ["lateral", "fly", "pushdown", "skull", "curl", "hammer", "legcurl", "calf", "cablecrunch", "straightarm"];
 for (const id of ISO) Object.assign(POOL[id], { rest: 75, restLabel: "Rest 60–90 s" });
-// Rep targets per session: A heavy, B lighter. Timed moves and the Face Pull keep their own targets.
-function sessionReps(v, id) {
-  const e = POOL[id]; if (/sec/.test(e.reps) || id === "facepull") return e.reps;
-  if (v === "A") return ISO.includes(id) ? "10–12" : "6–10";
-  if (id === "rdl") return "8–12";   // long sets of a heavy hinge tire the lower back before the hamstrings
-  return id === "lateral" ? "12–15" : "10–15";
+// 5-day week: Push, Pull, Legs + Abs, rest, Upper, Lower (light), rest. Each entry is [exercise, reps, rest in seconds].
+// Main lifts rest 2–3 min, secondary lifts 90 s, and small ones 60–90 s; the light Lower day uses higher reps and shorter rests.
+const FIVE = {
+  push:  [["dbbench", "6–10"], ["inclinepress", "8–12"], ["seatpress", "8–12"], ["lateral", "12–15"], ["skull", "10–12"], ["pushdown", "12–15"]],
+  pull:  [["bbrow", "6–10"], ["pulldown", "8–12"], ["cablerow", "10–12", 90], ["cgpulldown", "10–12", 90], ["curl", "10–12"], ["hammer", "10–12"]],
+  legs:  [["squat", "6–10"], ["legpress", "10–12", 90], ["rdl", "8–12"], ["legcurl", "10–12"], ["calf", "12–15"], ["cablecrunch", "12–15"]],
+  upper: [["inclinepress", "8–12", 90], ["fly", "12–15"], ["w-bbrow", "8–12", 90], ["pulldown", "10–12", 90], ["lateral", "12–15"], ["facepull", "12–15"], ["hammer", "10–12"]],
+  lower: [["legpress", "12–15", 75], ["legext", "12–15"], ["w-hipthrust", "10–12", 75], ["legcurl", "12–15"], ["calf", "15–20"], ["w-plank", "30–45 sec", 60]]
+};
+const restText = r => r >= 120 ? "Rest 2–3 min" : r === 90 ? "Rest 90 s" : r === 60 ? "Rest 60 s" : "Rest 60–90 s";
+function fiveItem(day, [id, reps, rest]) {
+  const e = Object.assign({}, POOL[id], { reps, finisher: false, sets: 3, setsLabel: day === "lower" ? "3" : "3–4" });
+  if (rest) Object.assign(e, { rest, restLabel: restText(rest) });
+  if (id === "w-bbrow") Object.assign(e, { name: "Bent-Over Dumbbell Row", equip: "Dumbbells" });
+  return e;
 }
-// Hammer Curl is the main arm exercise in Pull B, so it moves out of the finisher there.
-const sessionItem = (day, v, id) => Object.assign({}, POOL[id], { reps: sessionReps(v, id) },
-  (day === "pull" && v === "B" && id === "hammer") ? { finisher: false, sets: 3, setsLabel: "3–4" } :
-  id === "w-plank" ? { rest: 60, restLabel: "Rest 60 s" } : {});
 let variant = "A";
-const hasSessions = () => prog === "ppl" && level === "adv";
+const hasSessions = () => false;   // the old A/B split is replaced by the 5-day week
 // ---------- Training phase: 2 ramp-up weeks, then 6 build weeks and 1 easy week, repeating ----------
 let startDay = null;
 try { startDay = localStorage.getItem("ppa-start"); } catch (e) {}
@@ -832,7 +849,7 @@ function setStart(d) { startDay = d; try { if (d) localStorage.setItem("ppa-star
 let LAST = {};
 try { LAST = JSON.parse(localStorage.getItem("ppa-last") || "{}") || {}; } catch (e) {}
 const lastKey = () => prog + "|" + level;
-const curSpec = () => hasSessions() && SESSIONS[cat] ? `${cat}:${variant}` : cat;
+const curSpec = () => cat;
 const specLabel = sp => { const [c, v] = sp.split(":"); return label(c) + (v ? " " + v : ""); };
 function recordSession(spec, d) {
   const L = LAST[lastKey()];
@@ -912,9 +929,9 @@ function renderStatus() {
 }
 function dayEx(c) {
   const base = P_().ex[c];
-  let main = prog === "ppl" && SESSIONS[c]
-    ? (hasSessions() ? SESSIONS[c][variant].map(id => sessionItem(c, variant, id)) : BEGINNER[c].map(id => POOL[id]))
-    : base.filter(e => !e.light);
+  let main = prog !== "ppl" ? base.filter(e => !e.light)
+    : level === "adv" ? (FIVE[c] || []).map(x => fiveItem(c, x))
+    : (BEGINNER[c] || []).map(id => POOL[id]);
   const ph = phaseInfo();
   if (ph && ph.fixed) main = main.map(e => Object.assign({}, e, { sets: 3, setsLabel: "3" }));
   return [...base.filter(e => e.warmup), ...main, ...base.filter(e => e.cooldown)];
@@ -926,18 +943,20 @@ const ICONS = {
   legs: '<path d="M9 3v7l-2 11M15 3v7l2 11"/><path d="M9 10h6"/>',
   glutes: '<path d="M4 9c0 6 3 10 8 10s8-4 8-10"/><path d="M12 10v9M4 9h16"/>',
   upper: '<path d="M4 8l4-3h8l4 3"/><path d="M8 5v14h8V5"/>',
-  quads: '<path d="M9 3l-1 9 2 9M15 3l1 9-2 9"/>'
+  quads: '<path d="M9 3l-1 9 2 9M15 3l1 9-2 9"/>',
+  lower: '<path d="M9 3l-1 9 2 9M15 3l1 9-2 9"/><path d="M5 21h14"/>'
 };
 const PROGRAMS = {
   ppl: {
-    cats: { push: { label: "Push", short: "Push" }, pull: { label: "Pull", short: "Pull" }, legs: { label: "Legs & Core", short: "Legs" } },
+    cats: { push: { label: "Push", short: "Push" }, pull: { label: "Pull", short: "Pull" }, legs: { label: "Legs & Core", short: "Legs" },
+            upper: { label: "Upper Body", short: "Upper" }, lower: { label: "Light Lower", short: "Lower" } },
     ex: EX, restLabel: "Rest 2–3 min", mainRest: "Rest 2–3 min on big lifts, 60–90 s on small ones",
     note: "Upper-body push and pull days plus a legs and core day. 3–4 sets of 8–12 reps.",
     source: 'Exercises, sets and schedule follow <a href="https://www.healthline.com/nutrition/push-pull-workout" target="_blank" rel="noopener">Healthline\'s push-pull workout guide</a>.',
     tip: "Pick a weight where reps 9 and 10 feel hard but your form still holds. If you can do more than 12 with good form, go heavier.",
     plans: {
       beg: { days: ["push", "rest", "pull", "rest", "legs", "rest"], note: "Rolling order: one of each day, with a rest day after each. Good for busy weeks." },
-      adv: { days: ["push:A", "pull:A", "legs:A", "rest", "push:B", "pull:B", "legs:B", "rest"], note: "Rolling order, 8-day cycle. Each body part twice a week. A days are heavy (6–10 reps), B days are lighter with more reps (10–15) and different exercises." }
+      adv: { days: ["push", "pull", "legs", "rest", "upper", "lower", "rest"], note: "Rolling order, 7-day cycle: Push, Pull, Legs + Abs, rest, Upper, light Lower, rest. Upper body and legs are each trained twice." }
     }
   },
   women: {
@@ -1157,21 +1176,25 @@ document.querySelectorAll("[data-venue]").forEach(b => b.addEventListener("click
 }));
 function renderTabs() {
   const t = $("tabs"); t.innerHTML = "";
-  for (const c of Object.keys(P_().cats)) {
+  const inPlan = Object.keys(P_().cats).filter(c => P_().plans[level].days.some(d => d.split(":")[0] === c));
+  for (const c of inPlan) {
     const b = document.createElement("button");
     b.type = "button"; b.setAttribute("role", "tab"); b.id = "tab-" + c; b.dataset.cat = c; b.dataset.slot = slot(c);
     b.setAttribute("aria-selected", c === cat);
     b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[c]}</svg>`;
-    b.append(label(c));
+    b.append(inPlan.length > 3 ? P_().cats[c].short : label(c));
     b.addEventListener("click", () => setCat(c));
     t.appendChild(b);
   }
 }
 
 function renderList() {
+  // Switching to the 3-day week while on Upper or Lower: fall back to the first day in the plan.
+  const planDays = P_().plans[level].days.map(d => d.split(":")[0]);
+  if (!planDays.includes(cat)) cat = planDays.find(d => d !== "rest");
   document.body.dataset.slot = slot(cat);
   $("catTitle").textContent = label(cat);
-  $("dayVar").textContent = hasSessions() && SESSIONS[cat] ? " " + variant : "";
+  $("dayVar").textContent = "";
   renderTabs();
   const list = $("list"); list.innerHTML = "";
   let prevSec = null;
@@ -1181,7 +1204,7 @@ function renderList() {
     if (sec !== prevSec && (sec !== "main" || prevSec === "warm")) {
       const dv = document.createElement("div"); dv.className = "divider";
       const head = { warm: ["Warm-up", `About ${warmMins} min · no rest between moves`],
-                     main: [hasSessions() && SESSIONS[cat] ? (variant === "A" ? "Heavy workout · 6–10 reps" : "Lighter workout · 10–15 reps") : "Workout", (P_().mainRest || P_().restLabel + " between sets").replace("Rest ", "rest ")],
+                     main: prog === "ppl" && cat === "lower" ? ["Light workout", "stop 2–3 reps short · rest 60–90 s"] : ["Workout", (dayList.some(e => !e.light && e.rest >= 120) ? (P_().mainRest || P_().restLabel + " between sets") : "Rest 60–90 s between sets").replace("Rest ", "rest ")],
                      fin: ["Forearm finisher", `Do these last · ${(ex.restLabel || "").replace("Rest ", "rest ")}`],
                      cool: ["Cool-down", `About ${coolMins} min · hold each stretch and breathe slowly`] }[sec];
       dv.innerHTML = `<b>${head[0]}</b><span>${head[1]}</span>`;
