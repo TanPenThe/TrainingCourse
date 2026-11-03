@@ -92,6 +92,9 @@ h1 span { color: var(--accent); transition: color .3s; }
 .phase .row .start { margin: 0; flex: 1 1 160px; font-size: 18px; padding: 12px; }
 .phase .row .ghost { flex: 1 1 160px; padding: 12px; }
 .phase .links { display: flex; gap: 14px; margin-top: 8px; }
+#toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 12px); z-index: 40;
+  background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-weight: 600; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
 .phase-cue { margin: 8px 0 0; font-weight: 600; font-size: 14px; color: var(--accent); }
 .seg.prog { display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin-bottom: 0; }
 .seg.prog button { padding: 7px 8px; font-size: 14px; font-weight: 700; }
@@ -1109,7 +1112,7 @@ document.querySelectorAll("[data-lvl]").forEach(b => b.addEventListener("click",
 document.querySelectorAll("[data-prog]").forEach(b => b.addEventListener("click", () => {
   if (prog === b.dataset.prog) return;
   prog = b.dataset.prog; try { localStorage.setItem("ppa-prog", prog); } catch (e) {}
-  setCat(Object.keys(P_().cats)[0]);
+  setCat(Object.keys(P_().cats)[0], { replace: true });
 }));
 document.querySelectorAll("[data-venue]").forEach(b => b.addEventListener("click", () => {
   venue = b.dataset.venue; try { localStorage.setItem("ppa-venue", venue); } catch (e) {} renderList();
@@ -1189,6 +1192,7 @@ function askToggle(ex, from) {
   $("cText").textContent = isDone ? "This removes the checkmark for today." : `${ex.setsLabel} sets × ${ex.reps} reps finished.`;
   $("cYes").textContent = isDone ? "Undo" : "Mark done";
   $("confirm").hidden = false; $("cYes").focus();
+  pushNav("confirm");
 }
 function closeConfirm() {
   $("confirm").hidden = true;
@@ -1196,15 +1200,21 @@ function closeConfirm() {
   const again = id && document.querySelector(`.card .check[data-id="${id}"]`);
   if (again) again.focus();
 }
-$("cNo").addEventListener("click", closeConfirm);
-$("confirm").addEventListener("click", e => { if (e.target === $("confirm")) closeConfirm(); });
+$("cNo").addEventListener("click", navBack);
+$("confirm").addEventListener("click", e => { if (e.target === $("confirm")) navBack(); });
 $("cYes").addEventListener("click", () => {
   if (!pending) return;
   const id = pending.ex.id;
   if (done[id]) delete done[id]; else done[id] = true;
-  save(); renderList(); closeConfirm();
+  save(); renderList(); navBack();
 });
-function setCat(c) { cat = c; try { localStorage.setItem("ppa-cat", cat); } catch (e) {} renderList(); window.scrollTo(0, 0); }
+function setCat(c, opts) {
+  const changed = c !== cat || (history.state && history.state.variant !== variant);
+  cat = c; try { localStorage.setItem("ppa-cat", cat); } catch (e) {}
+  if (opts && opts.replace) history.replaceState(navState(null), "");
+  else if (changed) history.pushState(navState(null), "");
+  renderList(); window.scrollTo(0, 0);
+}
 $("resetBtn").addEventListener("click", () => { for (const e of dayEx(cat)) delete done[e.id]; save(); renderList(); });
 
 // ---------- Detail sheet ----------
@@ -1225,6 +1235,7 @@ function openDetail(ex) {
   renderDetailLog(ex);
   $("dMark").textContent = done[ex.id] ? "Undo done" : "Mark done";
   $("detail").scrollTop = 0; $("detail").classList.add("open"); $("dClose").focus();
+  pushNav("detail");
 }
 function renderDetailLog(ex) {
   $("dLogWrap").hidden = !!ex.light;
@@ -1254,16 +1265,18 @@ function renderDetailLog(ex) {
   });
 }
 const closeDetail = () => { $("detail").classList.remove("open"); live.delete($("dFig")); };
-$("dClose").addEventListener("click", closeDetail);
-$("dMark").addEventListener("click", () => { if (done[current.id]) delete done[current.id]; else done[current.id] = true; save(); renderList(); closeDetail(); });
-$("dDo").addEventListener("click", () => { closeDetail(); startWorkout([current]); });
+$("dClose").addEventListener("click", navBack);
+$("dMark").addEventListener("click", () => { if (done[current.id]) delete done[current.id]; else done[current.id] = true; save(); renderList(); navBack(); });
+// "Do this one" swaps the detail page for the workout, so Back from the workout returns to the list.
+$("dDo").addEventListener("click", () => { closeDetail(); startWorkout([current], true); });
 
 // ---------- Workout mode ----------
 let wk = null, wakeLock = null, timer = null;
-function startWorkout(list) {
+function startWorkout(list, replace) {
   const all = dayEx(cat), src = list || (all.filter(e => !e.light).every(e => done[e.id]) ? all : all.filter(e => !done[e.id]));
   wk = { queue: src.map(e => Object.assign({}, e)), i: 0, set: 1, resting: false, left: 0, total: 0 };
   $("workout").classList.add("open");
+  if (replace) history.replaceState(navState("workout"), ""); else pushNav("workout");
   try { navigator.wakeLock && navigator.wakeLock.request("screen").then(l => wakeLock = l).catch(() => {}); } catch (e) {}
   renderWorkout();
 }
@@ -1345,7 +1358,7 @@ function afterRest() {
 }
 $("wkWrap").addEventListener("click", e => {
   const act = e.target.closest("[data-act]")?.dataset.act; if (!act) return;
-  if (act === "close") return endWorkout();
+  if (act === "close") return navBack();
   if (act === "extra") { wk.queue[wk.i].sets++; return renderWorkout(); }
   if (act === "done") {
     const ex = wk.queue[wk.i];
@@ -1360,9 +1373,42 @@ $("wkWrap").addEventListener("click", e => {
   if (act === "add") { wk.left += 30; wk.total = Math.max(wk.total, wk.left); const n = $("ringNum"); if (n) n.textContent = fmt(wk.left); }
 });
 $("startBtn").addEventListener("click", () => startWorkout());
-document.addEventListener("keydown", e => { if (e.key === "Escape") { if (!$("confirm").hidden) closeConfirm(); else if (wk) endWorkout(); else closeDetail(); } });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && openOverlay()) navBack(); });
+
+// ---------- Back button ----------
+// Every page that opens over the list (detail, workout, confirm) and every tab change adds a history entry,
+// so Back steps back one page at a time instead of leaving the app.
+function navState(ov) { return { ov, cat, variant, prog }; }
+function pushNav(ov) { history.pushState(navState(ov), ""); }
+function openOverlay() { return !$("confirm").hidden ? "confirm" : wk ? "workout" : $("detail").classList.contains("open") ? "detail" : null; }
+function closeTop() { const o = openOverlay(); if (o === "confirm") closeConfirm(); else if (o === "workout") endWorkout(); else if (o === "detail") closeDetail(); }
+function navBack() { if (history.state && history.state.ov === openOverlay()) history.back(); else closeTop(); }
+addEventListener("popstate", e => {
+  const st = e.state || {};
+  if (st.ov !== "confirm" && !$("confirm").hidden) closeConfirm();
+  if (st.ov !== "workout" && wk) endWorkout();
+  if (st.ov !== "detail" && $("detail").classList.contains("open")) closeDetail();
+  if (!st.ov && st.cat && st.prog === prog && P_().ex[st.cat] && (st.cat !== cat || (st.variant && st.variant !== variant))) {
+    cat = st.cat; if (st.variant) variant = st.variant; renderList(); window.scrollTo(0, 0);
+  }
+});
+// In the Android app: on the main screen with nothing left to go back to, ask for a second press before exiting.
+const toast = msg => { let t = $("toast"); if (!t) { t = document.createElement("div"); t.id = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add("show"); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove("show"), 2000); };
+const CapApp = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()
+  ? (window.Capacitor.Plugins && window.Capacitor.Plugins.App) : null;
+if (CapApp) {
+  let lastBack = 0;
+  CapApp.addListener("backButton", ({ canGoBack }) => {
+    if (openOverlay()) return navBack();
+    if (canGoBack) return history.back();
+    if (Date.now() - lastBack < 2000) return CapApp.exitApp();
+    lastBack = Date.now(); toast("Press back again to exit");
+  });
+}
 
 { const nu = nextUp(); const sp = nu.state === "doneToday" ? nu.doneSpec : nu.spec; const [c, v] = sp.split(":"); if (P_().ex[c]) { cat = c; if (v) variant = v; } }
+history.replaceState(navState(null), "");
 renderList();
 })();
 </script>
