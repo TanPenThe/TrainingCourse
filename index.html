@@ -77,6 +77,11 @@ h1 span { color: var(--accent); transition: color .3s; }
 .upnext .big { font-family: var(--display); font-weight: 900; font-size: 30px; line-height: 1; text-transform: uppercase; margin-top: 2px; }
 .upnext p { margin: 4px 0 0; font-size: 13px; color: rgb(255 255 255 / .9); }
 .upnext button { flex: none; border: 0; border-radius: 12px; padding: 12px 16px; background: #fff; color: var(--accent); font-weight: 700; }
+.upnext .catch { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; font-size: 13px; }
+.upnext .catch span { color: rgb(255 255 255 / .9); }
+.upnext .catch button { padding: 5px 10px; font-size: 13px; background: rgb(255 255 255 / .2); color: #fff; border-radius: 999px; }
+.finish-day { width: 100%; margin-top: 10px; }
+.finish-day:disabled { opacity: .6; }
 .upnext.calm { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
 .upnext.calm .eyebrow, .upnext.calm p { color: var(--muted); }
 .upnext.calm button { background: var(--accent); color: #fff; }
@@ -275,6 +280,7 @@ ol.steps li::before { content: counter(s); font-family: var(--display); font-wei
 
   <main class="list" id="list" aria-live="polite"></main>
   <button class="start" id="startBtn" type="button">Start workout</button>
+  <button class="ghost finish-day" id="finishBtn" type="button">Mark whole day done</button>
   <button class="reset" id="resetBtn" type="button">Clear today's checkmarks</button>
   <p class="source" id="source"></p>
 </div>
@@ -828,8 +834,33 @@ try { LAST = JSON.parse(localStorage.getItem("ppa-last") || "{}") || {}; } catch
 const lastKey = () => prog + "|" + level;
 const curSpec = () => hasSessions() && SESSIONS[cat] ? `${cat}:${variant}` : cat;
 const specLabel = sp => { const [c, v] = sp.split(":"); return label(c) + (v ? " " + v : ""); };
+function recordSession(spec, d) {
+  const L = LAST[lastKey()];
+  if (L && dayNum(L.d) > dayNum(d)) return;   // never move the cycle backwards
+  LAST[lastKey()] = { spec, d };
+  try { localStorage.setItem("ppa-last", JSON.stringify(LAST)); } catch (e) {}
+}
+// The main (non warm-up / cool-down) exercises of a session such as "pull:A" in the current plan.
+function mainFor(spec) { const [c, v] = spec.split(":"), keep = variant; if (v) variant = v; const list = P_().ex[c] ? dayEx(c).filter(e => !e.light) : []; variant = keep; return list; }
+// Work out the most recent session from the weight log, so days you logged but never ticked still count.
+function lastFromLogs() {
+  const specs = [...new Set(P_().plans[level].days.filter(x => x !== "rest"))].map(sp => [sp, new Set(mainFor(sp).map(e => e.id))]);
+  const byDay = {};
+  for (const [id, hist] of Object.entries(LOG)) for (const e of hist) if (e.sets.length) (byDay[e.d] = byDay[e.d] || new Set()).add(id);
+  for (const d of Object.keys(byDay).sort().reverse()) {
+    let best = null, score = 0;
+    for (const [sp, ids] of specs) { let n = 0; for (const id of byDay[d]) if (ids.has(id)) n++; if (n > score) { score = n; best = sp; } }
+    if (best) return { spec: best, d };
+  }
+  return null;
+}
+function lastDone() {
+  const a = LAST[lastKey()], b = lastFromLogs();
+  if (!a) return b; if (!b) return a;
+  return dayNum(b.d) > dayNum(a.d) ? b : a;
+}
 function nextUp() {
-  const seq = P_().plans[level].days, last = LAST[lastKey()];
+  const seq = P_().plans[level].days, last = lastDone();
   const after = i => { for (let k = 1; k <= seq.length; k++) { const sp = seq[(i + k + seq.length) % seq.length]; if (sp !== "rest") return sp; } };
   if (!last) return { spec: seq.find(x => x !== "rest"), state: "start" };
   let i = seq.indexOf(last.spec);
@@ -849,8 +880,15 @@ function renderStatus() {
     rest: () => ["Rest day today", "Recover", `Walk, stretch and sleep well. Next up: ${specLabel(nu.spec)}`]
   }[nu.state]();
   box.className = "upnext" + (nu.state === "doneToday" || nu.state === "rest" ? " calm" : "");
-  box.innerHTML = `<div><div class="eyebrow"></div><div class="big"></div><p></p></div><button type="button" id="upNextBtn"></button>`;
+  const catchUp = nu.state === "go" || nu.state === "start";
+  box.innerHTML = `<div><div class="eyebrow"></div><div class="big"></div><p></p>${catchUp ? `<div class="catch"><span>Did it already?</span><button type="button" data-ago="0">Today</button><button type="button" data-ago="1">Yesterday</button></div>` : ""}</div><button type="button" id="upNextBtn"></button>`;
   box.querySelector(".eyebrow").textContent = msg[0]; box.querySelector(".big").textContent = msg[1]; box.querySelector("p").textContent = msg[2];
+  box.querySelectorAll("[data-ago]").forEach(bt => bt.addEventListener("click", () => {
+    const ago = +bt.dataset.ago;
+    if (ago === 0) for (const e of mainFor(nu.spec)) done[e.id] = true;
+    save(); recordSession(nu.spec, ago ? dateMinus(ago) : todayKey);
+    const n2 = nextUp(); if (n2.state === "go" || n2.state === "start") openSpec(n2.spec); else renderList();
+  }));
   const btn = $("upNextBtn"), viewing = curSpec() === nu.spec;
   btn.textContent = nu.state === "go" || nu.state === "start" ? (viewing ? "Showing" : "Open") : (viewing ? "Showing next" : "Preview next");
   btn.disabled = viewing; btn.style.opacity = viewing ? .6 : 1;
@@ -1177,26 +1215,34 @@ function renderList() {
   const mins = Math.round(dayEx(cat).reduce((m, e) => m + (e.light ? 60 : e.sets * (45 + e.rest)), 0) / 60);
   $("timeEst").textContent = `~${mins} min`;
   $("startBtn").textContent = n === all.length ? "Do it again" : n ? "Continue workout" : "Start workout";
-  if (all.length && n === all.length) {
-    const L = LAST[lastKey()];
-    if (!L || L.d !== todayKey || L.spec !== curSpec()) { LAST[lastKey()] = { spec: curSpec(), d: todayKey }; try { localStorage.setItem("ppa-last", JSON.stringify(LAST)); } catch (e) {} }
-  }
+  if (all.length && n === all.length) recordSession(curSpec(), todayKey);
+  $("finishBtn").textContent = n === all.length ? `${specLabel(curSpec())} done ✓` : "Mark whole day done";
+  $("finishBtn").disabled = n === all.length;
   renderPlan();
   renderStatus();
 }
 let pending = null;
-function askToggle(ex, from) {
-  const isDone = !!done[ex.id];
-  pending = { ex, from };
-  $("cTitle").textContent = isDone ? `Undo ${ex.name}?` : `Mark ${ex.name} as done?`;
-  $("cText").textContent = isDone ? "This removes the checkmark for today." : `${ex.setsLabel} sets × ${ex.reps} reps finished.`;
-  $("cYes").textContent = isDone ? "Undo" : "Mark done";
+function askConfirm(title, text, yes, run, ex) {
+  pending = { ex, run };
+  $("cTitle").textContent = title; $("cText").textContent = text; $("cYes").textContent = yes;
   $("confirm").hidden = false; $("cYes").focus();
   pushNav("confirm");
 }
+function askToggle(ex) {
+  const isDone = !!done[ex.id];
+  askConfirm(isDone ? `Undo ${ex.name}?` : `Mark ${ex.name} as done?`,
+    isDone ? "This removes the checkmark for today." : `${ex.setsLabel} sets × ${ex.reps} reps finished.`,
+    isDone ? "Undo" : "Mark done",
+    () => { if (done[ex.id]) delete done[ex.id]; else done[ex.id] = true; }, ex);
+}
+$("finishBtn").addEventListener("click", () => {
+  const sp = curSpec();
+  askConfirm(`Mark ${specLabel(sp)} as done?`, "Ticks every exercise for today and moves Up next to the next session.", "Mark day done",
+    () => { for (const e of mainFor(sp)) done[e.id] = true; recordSession(sp, todayKey); });
+});
 function closeConfirm() {
   $("confirm").hidden = true;
-  const id = pending && pending.ex.id; pending = null;
+  const id = pending && pending.ex && pending.ex.id; pending = null;
   const again = id && document.querySelector(`.card .check[data-id="${id}"]`);
   if (again) again.focus();
 }
@@ -1204,8 +1250,7 @@ $("cNo").addEventListener("click", navBack);
 $("confirm").addEventListener("click", e => { if (e.target === $("confirm")) navBack(); });
 $("cYes").addEventListener("click", () => {
   if (!pending) return;
-  const id = pending.ex.id;
-  if (done[id]) delete done[id]; else done[id] = true;
+  pending.run();
   save(); renderList(); navBack();
 });
 function setCat(c, opts) {
@@ -1261,7 +1306,7 @@ function renderDetailLog(ex) {
   if (!ul.children.length) { const li = document.createElement("li"); li.textContent = "No sets logged yet. Log each set here, or use Do this one to log as you go."; ul.appendChild(li); }
   $("logAdd").addEventListener("click", () => {
     const r = num($("logReps").value); if (!r) { $("logReps").focus(); return; }
-    addSet(ex.id, num($("logKg").value), r); renderDetailLog(ex); renderList();
+    addSet(ex.id, num($("logKg").value), r); recordSession(curSpec(), todayKey); renderDetailLog(ex); renderList();
   });
 }
 const closeDetail = () => { $("detail").classList.remove("open"); live.delete($("dFig")); };
@@ -1274,13 +1319,14 @@ $("dDo").addEventListener("click", () => { closeDetail(); startWorkout([current]
 let wk = null, wakeLock = null, timer = null;
 function startWorkout(list, replace) {
   const all = dayEx(cat), src = list || (all.filter(e => !e.light).every(e => done[e.id]) ? all : all.filter(e => !done[e.id]));
-  wk = { queue: src.map(e => Object.assign({}, e)), i: 0, set: 1, resting: false, left: 0, total: 0 };
+  wk = { queue: src.map(e => Object.assign({}, e)), i: 0, set: 1, resting: false, left: 0, total: 0, spec: curSpec(), logged: 0 };
   $("workout").classList.add("open");
   if (replace) history.replaceState(navState("workout"), ""); else pushNav("workout");
   try { navigator.wakeLock && navigator.wakeLock.request("screen").then(l => wakeLock = l).catch(() => {}); } catch (e) {}
   renderWorkout();
 }
 function endWorkout() {
+  if (wk && wk.logged) recordSession(wk.spec, todayKey);
   clearInterval(timer); $("workout").classList.remove("open"); wk = null;
   try { wakeLock && wakeLock.release(); } catch (e) {} wakeLock = null; renderList();
 }
@@ -1362,7 +1408,7 @@ $("wkWrap").addEventListener("click", e => {
   if (act === "extra") { wk.queue[wk.i].sets++; return renderWorkout(); }
   if (act === "done") {
     const ex = wk.queue[wk.i];
-    if (!ex.light && $("wkReps")) { const r = num($("wkReps").value); if (r) addSet(ex.id, num($("wkKg").value), r); }
+    if (!ex.light && $("wkReps")) { const r = num($("wkReps").value); if (r) { addSet(ex.id, num($("wkKg").value), r); wk.logged++; } }
     wk.set++;
     if (wk.set > ex.sets) { done[ex.id] = true; save(); }
     if (wk.set > ex.sets && wk.i === wk.queue.length - 1) { wk.i++; return renderWorkout(); }

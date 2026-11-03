@@ -1,5 +1,5 @@
 // Service worker: caches the whole app so it opens and runs with no connection.
-const CACHE = "training-program-acf6c901d6";
+const CACHE = "training-program-872bd02e0c";
 const FILES = [
   "./",
   "index.html",
